@@ -1,0 +1,13 @@
+{
+	// autoformat code on save ?
+	"autoformat_on_save": false,
+
+    // autopep8 command path
+    "command": "autopep8",
+
+    // select errors / warnings(e.g. ["E4", "W"])
+    "select": [],
+
+    // do not fix these errors / warnings(e.g. ["E4", "W"])
+    "ignore": ["E501"]
+}
