@@ -20,6 +20,9 @@
 #-- 2012-07-17, Stéphane Bunel
 #--           * Published on bitbucket.
 #--           * Version 2012.07.17.19.01.55
+#-- 2012-07-18, Stéphane Bunel
+#--           * Add Default.sublime-commands file
+#--           * Add 'show_command' setting
 #--
 #-- TODO:
 #--           * How to restore cursor position after replace() ?
@@ -87,6 +90,8 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
             cmd.append('--select')
             cmd.append(SELECT)
         cmd.append(fname)
+        if settings.get("show_command"):
+            print('cmd="{0}"'.format( ' '.join(cmd)))
 
         try:
             subprocess.call(cmd)

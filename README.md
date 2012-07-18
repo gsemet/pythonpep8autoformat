@@ -51,6 +51,25 @@ As defined in `Default.sublime-commands` file:
 You can reformat code by opening Command Palette (ctrl+shift+P) and type "auto"...
 to highlight full caption.
 
+## Settings
+
+You'll find default settings in file `pep8_autoformat.sublime-settings`.
+
+        {
+            // autoformat code on save ?
+            "autoformat_on_save": false,
+
+            // autopep8 command path
+            "command": "autopep8",
+
+            // select errors / warnings(e.g. ["E4", "W"])
+            "select": [],
+
+            // do not fix these errors / warnings(e.g. ["E4", "W"])
+            "ignore": ["E501"]
+        }
+
+
 ## License
 
 Copyright 2012 Stéphane Bunel

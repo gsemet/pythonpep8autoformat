@@ -9,5 +9,7 @@
     "select": [],
 
     // do not fix these errors / warnings(e.g. ["E4", "W"])
-    "ignore": ["E501"]
+    "ignore": ["E501"],
+
+    "show_command": true
 }
