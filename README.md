@@ -42,15 +42,14 @@ If you want to apply it on a subpart only, just select it before.
 
 ### Using Command Palette:
 
-Create (or add) the following JSON configuration by opening Packages directory of ST2 (Preference -> Browse packages).
-Then browse to User directory and create (or open) `Default.sublime-commands` file to add:
+As defined in `Default.sublime-commands` file:
 
 	[
 	    { "caption": "User: Python PEP8 Autoformat", "command": "pep8_autoformat" }
 	]
 
-To reformat code, open Command Palette (ctrl+shift+P) then start typing "format" then `Enter`
-when caption is highlighted.
+You can reformat code by opening Command Palette (ctrl+shift+P) and type "auto"...
+to highlight full caption.
 
 ## License
 
