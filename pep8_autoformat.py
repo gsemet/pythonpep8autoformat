@@ -14,19 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#-- 2012-07-15, Stéphane Bunel
-#--           * Learning how to create a plug-in for ST2
-#--           * Write the first lines of code.
-#-- 2012-07-17, Stéphane Bunel
-#--           * Published on bitbucket.
-#--           * Version 2012.07.17.19.01.55
-#-- 2012-07-18, Stéphane Bunel
-#--           * Add Default.sublime-commands file
-#--           * Add 'show_command' setting
-#--
-#-- TODO:
-#--           * How to restore cursor position after replace() ?
-
 import sys
 import os
 import subprocess
@@ -45,31 +32,32 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         source = ''
-        region = None
+        replace_region = None
+        pos = None
         sel = self.view.sel()
         syntax = self.view.settings().get('syntax')
-
-        if not syntax.endswith('Python.tmLanguage'):
-            sublime.error_message(
-                'Not a Python syntax. Current is:\n{0}'.format(syntax))
-            return
+        #line = self.view.rowcol(sel[0].a)[0] + 1
 
         if len(sel) > 1:
             sublime.error_message(
-                'PythonFormat8 cannot works with multi selection')
+                'Python PEP8 Autoformat cannot works with multi selection')
             return
         elif len(sel) == 1:
             region = sel[0]
-            if region.empty():
-                #-- Get all document
-                region = self.view.line(sublime.Region(0L, self.view.size()))
-                source = self.view.substr(region)
+            if region.empty():  # Get all document
+                pos = region.begin()
+                replace_region = self.view.line(sublime.Region(0L, self.view.size()))
             else:
-                #-- Get selected code
-                region = self.view.line(sel[0])
-                source = self.view.substr(region)
+                replace_region = self.view.line(sel[0])
+
+            scope = self.view.syntax_name(replace_region.end())
+            if not scope.startswith('source.python'):
+                sublime.error_message(
+                    'Current scope is {0}.\nPython PEP8 Autoformat apply only on Python code'.format(syntax))
+                return
+
+            source = self.view.substr(replace_region)
         else:
-            sublime.error_message('Hu! document with no selection !')
             return
 
         #-- Open tmpfile
@@ -91,12 +79,13 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
             cmd.append(SELECT)
         cmd.append(fname)
         if settings.get("show_command"):
-            print('cmd="{0}"'.format( ' '.join(cmd)))
+            print('cmd="{0}"'.format(' '.join(cmd)))
 
         try:
             subprocess.call(cmd)
-            output = file(fname, 'rb').read().decode('utf-8')
-            self.view.replace(edit, region, output)
+            with file(fname, 'rb') as f:
+                output = f.read().decode('utf-8')
+            self.view.replace(edit, replace_region, output)
         except OSError as e:
             if e.errno == 2:
                 msg = 'Command {0} not found\nSee https://github.com/hhatto/autopep8#installation for installation'.format(
@@ -108,7 +97,15 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
             sublime.error_message(str(sys.exc_info()[1]))
 
         #-- Remove tempfile
-        os.unlink(fname)
+        try:
+            os.unlink(fname)
+        except:
+            sublime.error_message(str(sys.exc_info()[1]))
+
+        if pos:
+            self.view.sel().clear()
+            self.view.sel().add(pos)
+            self.view.show_at_center(pos)
 
 
 class Pep8AutoformatBackground(sublime_plugin.EventListener):

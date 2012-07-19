@@ -55,20 +55,24 @@ to highlight full caption.
 
 You'll find default settings in file `pep8_autoformat.sublime-settings`.
 
-        {
-            // autoformat code on save ?
-            "autoformat_on_save": false,
+    {
+        // autoformat code on save ?
+        "autoformat_on_save": false,
 
-            // autopep8 command path
-            "command": "autopep8",
+        // autopep8 command path
+        "command": "autopep8",
 
-            // select errors / warnings(e.g. ["E4", "W"])
-            "select": [],
+        // select errors / warnings(e.g. ["E4", "W"])
+        "select": [],
 
-            // do not fix these errors / warnings(e.g. ["E4", "W"])
-            "ignore": ["E501"]
-        }
+        // do not fix these errors / warnings(e.g. ["E4", "W"])
+        "ignore": ["E501"],
 
+        // for debugging purpose (print executed command in console)
+        "show_command": true
+    }
+
+If you want to modify them, copy this file in (Preference -> Browse packages)/User/ directory before editing.
 
 ## License
 

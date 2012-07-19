@@ -11,5 +11,6 @@
     // do not fix these errors / warnings(e.g. ["E4", "W"])
     "ignore": ["E501"],
 
-    "show_command": true
+    // for debugging purpose (print executed command in console)
+    "show_command": false
 }
