@@ -1,6 +1,11 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2012.07.21-1
+- NEW: Settings menu (Preferences -> Packages Settings -> Python PEP8 Autoformat)
+- NEW: Include pep8 v1.3.3 and autopep8 v0.7.2 (with minor modifications) to remove all dependences.
+- FIX: variable reference
+
 ## 2012.07.19-1
 - FIX: Restore caret position after reformatting the whole document.
 - NEW: This file (CHANGELOG.md).
@@ -13,8 +18,8 @@ Python PEP8 Autoformat
 			// autoformat code on save ?
 			"autoformat_on_save": false,
 
-		    // autopep8 command path
-		    "command": "autopep8",
+		    // path to autopep8 or "" to use packaged version
+		    "command": "",
 
 		    // select errors / warnings(e.g. ["E4", "W"])
 		    "select": [],

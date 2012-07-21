@@ -21,11 +21,18 @@ import tempfile
 import sublime
 import sublime_plugin
 
+try:
+    import autopep8
+except:
+    sublime.error_message('Cannot import autopep8!\n{0}'.format(sys.exc_info[1]))
+    raise
+
+__version__ = '2012.07.21-1'
 
 settings = sublime.load_settings('pep8_autoformat.sublime-settings')
-AUTOPEP8 = settings.get('command', 'autopep8')
 IGNORE = ','.join(settings.get('ignore', []))
 SELECT = ','.join(settings.get('select', []))
+AUTOPEP8 = settings.get('command', '')
 
 
 class Pep8AutoformatCommand(sublime_plugin.TextCommand):
@@ -36,7 +43,6 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         pos = None
         sel = self.view.sel()
         syntax = self.view.settings().get('syntax')
-        #line = self.view.rowcol(sel[0].a)[0] + 1
 
         if len(sel) > 1:
             sublime.error_message(
@@ -53,7 +59,8 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
             scope = self.view.syntax_name(replace_region.end())
             if not scope.startswith('source.python'):
                 sublime.error_message(
-                    'Current scope is {0}.\nPython PEP8 Autoformat apply only on Python code'.format(syntax))
+                    'Current scope is {0}.\n'
+                    'Python PEP8 Autoformat apply only on Python code'.format(syntax))
                 return
 
             source = self.view.substr(replace_region)
@@ -69,32 +76,44 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         fname = source_file.name
         source_file.close()
 
-        #-- Run autopep8 on tmpfile
-        cmd = [AUTOPEP8, "--in-place"]
-        if IGNORE:
-            cmd.append('--ignore')
-            cmd.append(IGNORE)
-        if SELECT:
-            cmd.append('--select')
-            cmd.append(SELECT)
-        cmd.append(fname)
-        if settings.get("show_command"):
-            print('cmd="{0}"'.format(' '.join(cmd)))
+        #-- Autoformat
+        if AUTOPEP8 == '':
+            class options(object):
+                def __init__(self):
+                    self.ignore = IGNORE
+                    self.select = SELECT
+                    self.verbose = False
 
-        try:
-            subprocess.call(cmd)
-            with file(fname, 'rb') as f:
-                output = f.read().decode('utf-8')
-            self.view.replace(edit, replace_region, output)
-        except OSError as e:
-            if e.errno == 2:
-                msg = 'Command {0} not found\nSee https://github.com/hhatto/autopep8#installation for installation'.format(
-                    self.AUTOPEP8)
-            else:
-                msg = e.message
-            sublime.error_message(msg)
-        except:
-            sublime.error_message(str(sys.exc_info()[1]))
+            fix = autopep8.FixPEP8(source_file, options(), source.encode('utf-8'))
+            self.view.replace(edit, replace_region, fix.fix().decode('utf-8'))
+        else:
+            cmd = [AUTOPEP8, "--in-place"]
+            if IGNORE:
+                cmd.append('--ignore')
+                cmd.append(IGNORE)
+            if SELECT:
+                cmd.append('--select')
+                cmd.append(SELECT)
+            cmd.append(fname)
+            if settings.get("show_command"):
+                print('cmd="{0}"'.format(' '.join(cmd)))
+
+            try:
+                subprocess.call(cmd)
+                with file(fname, 'rb') as f:
+                    output = f.read().decode('utf-8')
+                self.view.replace(edit, replace_region, output)
+            except OSError as e:
+                if e.errno == 2:
+                    msg = '"{0}" not found !\n' \
+                        'Set "command" path in Python PEP8 Autoformat settings.\n' \
+                        'See https://github.com/hhatto/autopep8#installation if autopep8 is not installed'.format(
+                        AUTOPEP8)
+                else:
+                    msg = e.message
+                sublime.error_message(msg)
+            except:
+                sublime.error_message(str(sys.exc_info()[1]))
 
         #-- Remove tempfile
         try:
