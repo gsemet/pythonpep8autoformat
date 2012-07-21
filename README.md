@@ -1,15 +1,15 @@
-Two days ago, looking for an eventual Eclipse replacement, I started to give a try to
-[Sublime Text 2](http://www.sublimetext.com/).
-One of my main usages of [PyDev](http://pydev.org/) (very good Eclipse plug-in for Python coder) is the code formatter.
-Under ST2 I installed [PythonTidy](https://github.com/witsch/SublimePythonTidy) but unfortunately
+Two days ago, looking for an eventual [Eclipse][] replacement, I started to give a try to
+[Sublime Text 2][].
+One of my main usages of [PyDev][] (very good Eclipse plug-in for Python coder) is the code formatter.
+Under ST2 I installed [PythonTidy][] but unfortunately
 it did not work for me.
 So, for fun and learning, I decided to create a new ST2 plug-in: **Python PEP8 Autoformat**.
-It is based on [autopep8](https://github.com/hhatto/autopep8) as code formatter.
+It is based on [autopep8][] as code formatter.
 
 # Python PEP8 Autoformat
 
 Python PEP8 Autoformat is a Sublime Text 2 plug-in for reformat interactively Python source code according
-to [PEP8](http://www.python.org/dev/peps/pep-0008/) (Style Guide for Python Code). 
+to [PEP8][] (Style Guide for Python Code). 
 
 ## Installation
 
@@ -25,7 +25,7 @@ on your system, you have to set the path to autopep8 in settings (see below).
     + Open a terminal, cd to ST2/Packages directory (Preference -> Browse packages). Then type in terminal:
     + `hg clone https://bitbucket.org/StephaneBunel/pythonpep8autoformat 'Python PEP8 Autoformat'`
 
-1. Pending: Using [Sublime Package Control](http://wbond.net/sublime_packages/package_control)
+1. Pending: Using [Sublime Package Control][]
     + Use `cmd+shift+P` then `Package Control: Install Package`
     + Look for `Python PEP8 Autoformat` and install it.
 
@@ -79,8 +79,8 @@ and type "auto"... up to highlight full caption.
 ### Companions
 Useful companions to Python PEP8 Autoformat:
 
-+ [SublimeLinter](https://github.com/SublimeLinter/SublimeLinter) - Inline lint highlighting
-+ [MarkdownPreview](https://github.com/revolunet/sublimetext-markdown-preview) - Markdown preview in browser
++ [SublimeLinter][] - Inline lint highlighting
++ [MarkdownPreview][] - Markdown preview in browser
 
 ## License
 
@@ -90,10 +90,23 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+[http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+
+[Sublime Text 2]:          http://www.sublimetext.com/
+[autopep8]:                https://github.com/hhatto/autopep8
+[PythonTidy]:              https://github.com/witsch/SublimePythonTidy
+[Eclipse]:                 http://www.eclipse.org/
+[PyDev]:                   http://pydev.org/
+[PEP8]:                    http://www.python.org/dev/peps/pep-0008/
+[Sublime Package Control]: http://wbond.net/sublime_packages/package_control
+[SublimeLinter]:           https://github.com/SublimeLinter/SublimeLinter
+[MarkdownPreview]:         https://github.com/revolunet/sublimetext-markdown-preview
+
+
