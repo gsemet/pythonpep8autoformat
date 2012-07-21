@@ -25,7 +25,7 @@ on your system, you have to set the path to autopep8 in settings (see below).
     + Open a terminal, cd to ST2/Packages directory (Preference -> Browse packages). Then type in terminal:
     + `hg clone https://bitbucket.org/StephaneBunel/pythonpep8autoformat 'Python PEP8 Autoformat'`
 
-1. Using [Sublime Package Manager](http://wbond.net/sublime_packages/package_control)
+1. Pending: Using [Sublime Package Control](http://wbond.net/sublime_packages/package_control)
     + Use `cmd+shift+P` then `Package Control: Install Package`
     + Look for `Python PEP8 Autoformat` and install it.
 
@@ -75,6 +75,12 @@ As defined in `Default.sublime-commands` file:
 
 You can format your Python code by opening Command Palette (ctrl+shift+P)
 and type "auto"... up to highlight full caption.
+
+### Companions
+Useful companions to Python PEP8 Autoformat:
+
++ [SublimeLinter](https://github.com/SublimeLinter/SublimeLinter) - Inline lint highlighting
++ [MarkdownPreview](https://github.com/revolunet/sublimetext-markdown-preview) - Markdown preview in browser
 
 ## License
 
