@@ -62,7 +62,7 @@ Reformatting operate only if the document is in Python syntax mode (default for 
 ### Using keyboard:
 
 - GNU/Linux: `ctrl+shift+r`
-- OSX:       `ctrl+meta+r`
+- OSX:       `ctrl+shift+r`
 - Windows:   `ctrl+shift+r`
 
 ### Using Command Palette:

@@ -27,8 +27,6 @@ except:
     sublime.error_message('Cannot import autopep8!\n{0}'.format(sys.exc_info[1]))
     raise
 
-__version__ = '2012.07.21-1'
-
 settings = sublime.load_settings('pep8_autoformat.sublime-settings')
 IGNORE = ','.join(settings.get('ignore', []))
 SELECT = ','.join(settings.get('select', []))
