@@ -2,6 +2,9 @@
 Python PEP8 Autoformat
 
 ## 2012.07.21-2
+- README update
+
+## 2012.07.21-2
 - FIX: OSX key binding is now `ctrl+shift+r`
 
 ## 2012.07.21-1
