@@ -40,11 +40,10 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         replace_region = None
         pos = None
         sel = self.view.sel()
-        syntax = self.view.settings().get('syntax')
 
         if len(sel) > 1:
             sublime.error_message(
-                'Python PEP8 Autoformat cannot works with multi selection')
+                'Python PEP8 Autoformat cannot work with multi selection')
             return
         elif len(sel) == 1:
             region = sel[0]
@@ -58,7 +57,7 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
             if not scope.startswith('source.python'):
                 sublime.error_message(
                     'Current scope is {0}.\n'
-                    'Python PEP8 Autoformat apply only on Python code'.format(syntax))
+                    'Python PEP8 Autoformat apply only on Python code'.format(scope))
                 return
 
             source = self.view.substr(replace_region)

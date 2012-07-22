@@ -1,4 +1,4 @@
-Two days ago, looking for an eventual [Eclipse][] replacement, I started to give a try to
+Two days ago, looking for an possible [Eclipse][] replacement, I gave a try to
 [Sublime Text 2][].
 One of my main usages of [PyDev][] (very good Eclipse plug-in for Python coder) is the code formatter.
 Under ST2 I installed [PythonTidy][] but unfortunately
@@ -8,25 +8,27 @@ It is based on [autopep8][] as code formatter.
 
 # Python PEP8 Autoformat
 
-Python PEP8 Autoformat is a Sublime Text 2 plug-in for reformat interactively Python source code according
+Python PEP8 Autoformat is a Sublime Text 2 plug-in to interactively reformat Python source code according
 to [PEP8][] (Style Guide for Python Code). 
 
 ## Installation
 
-To avoid dependences, a version of autopep8 is shipped in this package. If you want to use version installed
-on your system, you have to set the path to autopep8 in settings (see below).
+To avoid dependencies, a version of autopep8 is shipped with this package. If you want to use version installed
+on your system, you have to set up the path to autopep8 (see below).
 
 1. Manually:
-    + Download an [archive](https://bitbucket.org/StephaneBunel/pythonpep8autoformat/downloads) of Python PEP8 Autoformat
-    + Move into ST2/Packages directory (Preference -> Browse packages) and create a new directory named 'Python PEP8 Autoformat'
-    + Extract archive contents into 'Python PEP8 Autoformat' directory.
+    + Download an [archive](https://bitbucket.org/StephaneBunel/pythonpep8autoformat/downloads)
+      of Python PEP8 Autoformat
+    + Change directory to ST2/Packages directory (Preferences -> Browse packages) and create a new
+      directory named 'Python PEP8 Autoformat'
+    + Extract archive contents in this 'Python PEP8 Autoformat' directory.
 
 1. Using mercurial (hg) repository on bitbucket:
-    + Open a terminal, cd to ST2/Packages directory (Preference -> Browse packages). Then type in terminal:
+    + Open a terminal, cd to ST2/Packages directory (Preferences -> Browse packages). Then type in terminal:
     + `hg clone https://bitbucket.org/StephaneBunel/pythonpep8autoformat 'Python PEP8 Autoformat'`
 
 1. Pending: Using [Sublime Package Control][]
-    + Use `cmd+shift+P` then `Package Control: Install Package`
+    + Use `cmd+shift+P` shortcut then `Package Control: Install Package`
     + Look for `Python PEP8 Autoformat` and install it.
 
 ## Settings
@@ -52,7 +54,7 @@ You'll find default settings in file `pep8_autoformat.sublime-settings`.
 
 The first time you'll want to change them use Settings menu: Preferences > Packages Settings > Python PEP8 Autoformat > ...
 Open both "Settings - Default" AND "Settings - User". Copy Default settings to User settings, modify
-User settings and save. By doing like this, your personal settings will be kept safe over plug-in upgrade.
+User settings to your liking and save. By doing this way, your personal settings will be kept safe over plug-in upgrades.
 
 ## Usage
 
