@@ -1,6 +1,9 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 3012.08.02-1
+- Python PEP8 Autoformat is now installable via [Sublime Package Control](http://wbond.net/sublime_packages/package_control)
+
 ## 2012.07.22-1
 - Cosmetic code changes
 - Tested under Windows 7

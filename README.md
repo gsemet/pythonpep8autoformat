@@ -1,8 +1,6 @@
-Two days ago, looking for an possible [Eclipse][] replacement, I gave a try to
-[Sublime Text 2][].
+Two days ago, looking for a possible [Eclipse][] replacement, I gave a try to [Sublime Text 2][].
 One of my main usages of [PyDev][] (very good Eclipse plug-in for Python coder) is the code formatter.
-Under ST2 I installed [PythonTidy][] but unfortunately
-it did not work for me.
+Under ST2 I installed [PythonTidy][] but unfortunately it did not work for me.
 So, for fun and learning, I decided to create a new ST2 plug-in: **Python PEP8 Autoformat**.
 It is based on [autopep8][] as code formatter.
 
@@ -16,6 +14,14 @@ to [PEP8][] (Style Guide for Python Code).
 To avoid dependencies, a version of autopep8 is shipped with this package. If you want to use version installed
 on your system, you have to set up the path to autopep8 (see below).
 
+1. Using [Sublime Package Control][]
+    + Use `cmd+shift+P` shortcut then `Package Control: Install Package`
+    + Look for `Python PEP8 Autoformat` and install it.
+
+1. Using mercurial (hg) repository on bitbucket:
+    + Open a terminal, cd to ST2/Packages directory (Preferences -> Browse packages). Then type in terminal:
+    + `hg clone https://bitbucket.org/StephaneBunel/pythonpep8autoformat 'Python PEP8 Autoformat'`
+
 1. Manually:
     + Download an [archive](https://bitbucket.org/StephaneBunel/pythonpep8autoformat/downloads)
       of Python PEP8 Autoformat
@@ -23,13 +29,6 @@ on your system, you have to set up the path to autopep8 (see below).
       directory named 'Python PEP8 Autoformat'
     + Extract archive contents in this 'Python PEP8 Autoformat' directory.
 
-1. Using mercurial (hg) repository on bitbucket:
-    + Open a terminal, cd to ST2/Packages directory (Preferences -> Browse packages). Then type in terminal:
-    + `hg clone https://bitbucket.org/StephaneBunel/pythonpep8autoformat 'Python PEP8 Autoformat'`
-
-1. Pending: Using [Sublime Package Control][]
-    + Use `cmd+shift+P` shortcut then `Package Control: Install Package`
-    + Look for `Python PEP8 Autoformat` and install it.
 
 ## Settings
 
@@ -58,8 +57,8 @@ User settings to your liking and save. By doing this way, your personal settings
 
 ## Usage
 
-Formatting is applied on the whole document if there is no selection.
-Reformatting operate only if the document is in Python syntax mode (default for all .py files).
+Formatting is applied on the whole document if there is no selection and operate only if the document
+is in Python syntax mode (default for all .py files).
 
 ### Using keyboard:
 
@@ -110,5 +109,3 @@ limitations under the License.
 [Sublime Package Control]: http://wbond.net/sublime_packages/package_control
 [SublimeLinter]:           https://github.com/SublimeLinter/SublimeLinter
 [MarkdownPreview]:         https://github.com/revolunet/sublimetext-markdown-preview
-
-
