@@ -1,11 +1,29 @@
 #!/usr/bin/env python
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 A tool that automatically formats Python code to conform to the PEP 8 style
 guide.
 """
 import copy
 import os
-import re
 import sys
 import inspect
 try:
@@ -21,7 +39,6 @@ from optparse import OptionParser
 from subprocess import Popen, PIPE
 from difflib import unified_diff
 import tempfile
-import ast
 
 # from distutils.version import StrictVersion
 # try:
@@ -32,7 +49,9 @@ import ast
 #     pep8 = None
 import pep8
 
-__version__ = '0.7.2'
+
+__version__ = '0.8'
+
 
 PEP8_BIN = 'pep8'
 PEP8_PASSES_MAX = 100
@@ -82,6 +101,20 @@ class FixPEP8(object):
 
     """Fix invalid code.
 
+    Fixer methods are prefixed "fix_". The _fix_source() method looks for these
+    automatically.
+
+    The fixer method can take either one or two arguments (in addition to
+    self). The first argument is "result", which is the error information from
+    pep8. The second argument, "logical", is required only for logical-line
+    fixes.
+
+    The fixer method can return the list of modified lines or None. An empty
+    list would mean that no changes were made. None would mean that only the
+    line reported in the pep8 error was modified. Note that the modified line
+    numbers that are returned are indexed at 1. This typically would correspond
+    with the line number reported in the pep8 error information.
+
     [fixed method list]
         - e111
         - e121,e122,e123,e124,e125,e126,e127,e128
@@ -96,6 +129,8 @@ class FixPEP8(object):
         - e401
         - e502
         - e701,e702
+        - e711
+        - e721
         - w291,w293
         - w391
         - w602,w603,w604
@@ -117,6 +152,7 @@ class FixPEP8(object):
         self.logical_end = None
         # method definition
         self.fix_e111 = self.fix_e101
+        self.fix_e128 = self.fix_e127
         self.fix_e202 = self.fix_e201
         self.fix_e203 = self.fix_e201
         self.fix_e211 = self.fix_e201
@@ -132,7 +168,7 @@ class FixPEP8(object):
         self.fix_w191 = self.fix_e101
 
     def _fix_source(self, results):
-        completed_lines = []
+        completed_lines = set()
         for result in sorted(results, key=_priority_key):
             if result['line'] in completed_lines:
                 continue
@@ -141,24 +177,28 @@ class FixPEP8(object):
             if hasattr(self, fixed_methodname):
                 fix = getattr(self, fixed_methodname)
 
-                # Do not run logical fix if any lines have been modified.
                 is_logical_fix = len(inspect.getargspec(fix).args) > 2
-                if is_logical_fix and completed_lines:
-                    continue
-
                 if is_logical_fix:
-                    modified_lines = fix(result, self._get_logical(result))
+                    # Do not run logical fix if any lines have been modified.
+                    if completed_lines:
+                        continue
+
+                    logical = self._get_logical(result)
+                    if not logical:
+                        continue
+
+                    modified_lines = fix(result, logical)
                 else:
                     modified_lines = fix(result)
 
                 if modified_lines:
-                    completed_lines += modified_lines
+                    completed_lines.update(modified_lines)
                 elif modified_lines == []:  # Empty list means no fix
                     if self.options.verbose:
                         sys.stderr.write('Not fixing {f} on line {l}\n'.format(
                             f=result['id'], l=result['line']))
                 else:  # We assume one-line fix when None
-                    completed_lines.append(result['line'])
+                    completed_lines.add(result['line'])
             else:
                 if self.options.verbose:
                     sys.stderr.write("'%s' is not defined.\n" %
@@ -238,7 +278,11 @@ class FixPEP8(object):
         Assumes input is already E702-clean.
 
         """
-        self.find_logical()
+        try:
+            self.find_logical()
+        except (IndentationError, tokenize.TokenError):
+            return None
+
         row = result['line'] - 1
         col = result['column'] - 1
         ls = None
@@ -277,7 +321,7 @@ class FixPEP8(object):
             valid = valid_indents[row]
             got = rewrapper.rel_indent[row]
         else:
-            # line number from pep8 isn't a continuation line.  instead,
+            # Line number from pep8 isn't a continuation line. Instead,
             # compare our own function's result, look for the first mismatch,
             # and just hope that we take fewer than 100 iterations to finish.
             for row in range(0, len(original), 1):
@@ -286,7 +330,6 @@ class FixPEP8(object):
                 if valid != got:
                     break
         line = ls[0] + row
-        orig_line = self.source[line]
         # always pick the expected indent, for now.
         indent_to = valid[0]
         if fix_distinct and indent_to == 4:
@@ -296,10 +339,13 @@ class FixPEP8(object):
                 indent_to = valid[1]
 
         if got != indent_to:
-            self.source[line] = (
-                " " * (indent_to) + orig_line.lstrip()
-            )
-            return [line + 1]  # Line indexed at 1
+            orig_line = self.source[line]
+            new_line = ' ' * (indent_to) + orig_line.lstrip()
+            if new_line == orig_line:
+                return []
+            else:
+                self.source[line] = new_line
+                return [line + 1]  # Line indexed at 1
         else:
             return []
 
@@ -317,7 +363,19 @@ class FixPEP8(object):
         """The 'loose fingernails' indentation level error for hanging
         indents."""
         # fix by deleting whitespace to the correct level
-        return self._fix_reindent(result, logical)
+        if not logical:
+            return []
+        logical_lines = logical[2]
+        line_index = result['line'] - 1
+        original_line = self.source[line_index]
+
+        fixed_line = (_get_indentation(logical_lines[0]) +
+                      original_line.lstrip())
+        if fixed_line == original_line:
+            # Fallback to slower method.
+            return self._fix_reindent(result, logical)
+        else:
+            self.source[line_index] = fixed_line
 
     def fix_e124(self, result, logical):
         """The 'loose fingernails' indentation level error for visual
@@ -328,32 +386,87 @@ class FixPEP8(object):
     def fix_e125(self, result, logical):
         """The 'often not visually distinct' error."""
         # fix by indenting the line in error to the next stop.
-        return self._fix_reindent(result, logical, fix_distinct=True)
+        modified_lines = self._fix_reindent(result, logical, fix_distinct=True)
+        if modified_lines:
+            return modified_lines
+        else:
+            # Fallback
+            line_index = result['line'] - 1
+            original_line = self.source[line_index]
+            self.source[line_index] = self.indent_word + original_line
 
     def fix_e126(self, result, logical):
         """The 'spectacular indent' error for hanging indents."""
         # fix by deleting whitespace to the left
-        return self._fix_reindent(result, logical)
+        if not logical:
+            return []
+        logical_lines = logical[2]
+        line_index = result['line'] - 1
+        original = self.source[line_index]
+
+        fixed = (_get_indentation(logical_lines[0]) +
+                 self.indent_word + original.lstrip())
+        if fixed == original:
+            # Fallback to slower method.
+            return self._fix_reindent(result, logical)
+        else:
+            self.source[line_index] = fixed
 
     def fix_e127(self, result, logical):
         """The 'interpretive dance' indentation error."""
-        # fix by deleting whitespace to the correct level
-        return self._fix_reindent(result, logical)
+        # Fix by inserting/deleting whitespace to the correct level.
+        modified_lines = self._align_visual_indent(result, logical)
+        if modified_lines:
+            return modified_lines
+        else:
+            # Fallback to slower method.
+            return self._fix_reindent(result, logical)
 
-    def fix_e128(self, result, logical):
-        """The 'I just wrap long lines with a line break in the middle of my
-        argument list' indentation error."""
-        # fix by deleting whitespace to the correct level
-        return self._fix_reindent(result, logical)
+    def _align_visual_indent(self, result, logical):
+        """Correct visual indent.
+
+        This includes over (E127) and under (E128) indented lines.
+
+        """
+        if not logical:
+            return []
+        logical_lines = logical[2]
+        line_index = result['line'] - 1
+        original = self.source[line_index]
+        fixed = original
+
+        if '(' in logical_lines[0]:
+            fixed = logical_lines[0].find('(') * ' ' + original.lstrip()
+        elif logical_lines[0].rstrip().endswith('\\'):
+            fixed = (_get_indentation(logical_lines[0]) +
+                     self.indent_word + original.lstrip())
+        else:
+            return []
+
+        if fixed == original:
+            return []
+        else:
+            self.source[line_index] = fixed
 
     def fix_e201(self, result):
         line_index = result['line'] - 1
         target = self.source[line_index]
         offset = result['column'] - 1
 
-        self.source[line_index] = fix_whitespace(target,
-                                                 offset=offset,
-                                                 replacement='')
+        # When multiline strings are involved, pep8 reports the error as
+        # being at the start of the multiline string, which doesn't work
+        # for us.
+        if '"""' in target or "'''" in target:
+            return []
+
+        fixed = fix_whitespace(target,
+                               offset=offset,
+                               replacement='')
+
+        if fixed == target:
+            return []
+        else:
+            self.source[line_index] = fixed
 
     def fix_e224(self, result):
         target = self.source[result['line'] - 1]
@@ -386,7 +499,13 @@ class FixPEP8(object):
     def fix_e251(self, result):
         line_index = result['line'] - 1
         target = self.source[line_index]
-        c = result['column'] - 1
+
+        # This is necessary since pep8 sometimes reports columns that goes
+        # past the end of the physical line. This happens in cases like,
+        # foo(bar\n=None)
+        c = min(result['column'] - 1,
+                len(target) - 1)
+
         if target[c].strip():
             fixed = target
         else:
@@ -425,9 +544,14 @@ class FixPEP8(object):
         target = self.source[line_index]
         offset = result['column'] - 1
 
-        self.source[line_index] = fix_whitespace(target,
-                                                 offset=offset,
-                                                 replacement=' ')
+        fixed = fix_whitespace(target,
+                               offset=offset,
+                               replacement=' ')
+
+        if fixed == target:
+            return []
+        else:
+            self.source[line_index] = fixed
 
     def fix_e301(self, result):
         cr = self.newline
@@ -466,62 +590,68 @@ class FixPEP8(object):
     def fix_e401(self, result):
         line_index = result['line'] - 1
         target = self.source[line_index]
+        offset = result['column'] - 1
 
         if not target.lstrip().startswith('import'):
             return []
 
+        # pep8 (1.3.1) reports false positive if there is an import statement
+        # followed by a semicolon and some unrelated statement with commas in
+        # it.
+        if ';' in target:
+            return []
+
         indentation = target.split("import ")[0]
-        modules = target.split("import ")[1].split(",")
-        fixed_modulelist = \
-            [indentation + "import %s" % m.lstrip() for m in modules]
-        self.source[line_index] = self.newline.join(fixed_modulelist)
+        fixed = (target[:offset].rstrip('\t ,') + self.newline +
+                 indentation + 'import ' + target[offset:].lstrip('\t ,'))
+        self.source[line_index] = fixed
 
     def fix_e501(self, result):
         line_index = result['line'] - 1
         target = self.source[line_index]
 
-        if target.lstrip().startswith('#'):
-            # Wrap commented lines
-            self.source[line_index] = shorten_comment(line=target,
-                                                      newline=self.newline)
-            return
-        else:
-            indent = _get_indentation(target)
-            source = target[len(indent):]
-            sio = StringIO(target)
+        indent = _get_indentation(target)
+        source = target[len(indent):]
+        sio = StringIO(target)
 
-            # don't fix when multiline string
-            try:
-                tokens = tokenize.generate_tokens(sio.readline)
-                _tokens = [t for t in tokens]
-            except (tokenize.TokenError, IndentationError):
-                return []
+        # Check for multiline string.
+        try:
+            tokens = list(tokenize.generate_tokens(sio.readline))
+        except (tokenize.TokenError, IndentationError):
+            multi_line_candidate = break_multi_line(
+                target, newline=self.newline, indent_word=self.indent_word)
 
-            # Prefer
-            # my_long_function_name(
-            #     x, y, z, ...)
-            #
-            # over
-            # my_long_function_name(x, y,
-            #     z, ...)
-            candidate0 = _shorten_line(_tokens, source, target, indent,
-                                       self.indent_word, newline=self.newline,
-                                       reverse=False)
-            candidate1 = _shorten_line(_tokens, source, target, indent,
-                                       self.indent_word, newline=self.newline,
-                                       reverse=True)
-            if candidate0 and candidate1:
-                if candidate0.split(self.newline)[0].endswith('('):
-                    self.source[line_index] = candidate0
-                else:
-                    self.source[line_index] = candidate1
-            elif candidate0:
-                self.source[line_index] = candidate0
-            elif candidate1:
-                self.source[line_index] = candidate1
+            if multi_line_candidate:
+                self.source[line_index] = multi_line_candidate
+                return
             else:
-                # Otherwise both don't work
                 return []
+
+        # Prefer
+        # my_long_function_name(
+        #     x, y, z, ...)
+        #
+        # over
+        # my_long_function_name(x, y,
+        #     z, ...)
+        candidate0 = _shorten_line(tokens, source, target, indent,
+                                   self.indent_word, newline=self.newline,
+                                   reverse=False)
+        candidate1 = _shorten_line(tokens, source, target, indent,
+                                   self.indent_word, newline=self.newline,
+                                   reverse=True)
+        if candidate0 and candidate1:
+            if candidate0.split(self.newline)[0].endswith('('):
+                self.source[line_index] = candidate0
+            else:
+                self.source[line_index] = candidate1
+        elif candidate0:
+            self.source[line_index] = candidate0
+        elif candidate1:
+            self.source[line_index] = candidate1
+        else:
+            # Otherwise both don't work
+            return []
 
     def fix_e502(self, result):
         """Remove extraneous escape of newline."""
@@ -536,39 +666,61 @@ class FixPEP8(object):
 
         fixed_source = (target[:c] + self.newline +
                         _get_indentation(target) + self.indent_word +
-                        target[c:].lstrip())
+                        target[c:].lstrip('\n\r \t\\'))
         self.source[result['line'] - 1] = fixed_source
 
     def fix_e702(self, result, logical):
         """Fix multiple statements on one line."""
+        logical_lines = logical[2]
+
         line_index = result['line'] - 1
         target = self.source[line_index]
+
+        if target.rstrip().endswith('\\'):
+            # Normalize '1; \\\n2' into '1; 2'.
+            self.source[line_index] = target.rstrip('\n \r\t\\')
+            self.source[line_index + 1] = self.source[line_index + 1].lstrip()
+            return [line_index + 1, line_index + 2]
 
         if target.rstrip().endswith(';'):
             self.source[line_index] = target.rstrip('\n \r\t;') + self.newline
             return
 
-        # We currently do not support things like
-        #     """
-        #         hello
-        #       """; foo()
-        if '"""' in target:
-            return []
-
-        # Make sure we aren't likely in a string
-        if target.strip().startswith('"') or target.strip().startswith("'"):
-            return []
-
         offset = result['column'] - 1
         first = target[:offset].rstrip(';')
-        second = target[offset:].lstrip(';')
+        second = (_get_indentation(logical_lines[0]) +
+                  target[offset:].lstrip(';').lstrip())
 
-        if not logical:
+        self.source[line_index] = first + self.newline + second
+
+    def fix_e711(self, result):
+        """Fix comparison."""
+        line_index = result['line'] - 1
+        target = self.source[line_index]
+        offset = result['column'] - 1
+
+        right_offset = offset + 2
+        if right_offset >= len(target):
             return []
-        f = [_get_indentation(logical[2][0]) + t.strip()
-             for t in [first, second] if t.strip()]
 
-        self.source[line_index] = self.newline.join(f) + self.newline
+        left = target[:offset].rstrip()
+        center = target[offset:right_offset]
+        right = target[right_offset:].lstrip()
+
+        if not right.startswith('None'):
+            return []
+
+        if center.strip() == '==':
+            new_center = 'is'
+        elif center.strip() == '!=':
+            new_center = 'is not'
+        else:
+            return []
+
+        self.source[line_index] = ' '.join([left, new_center, right])
+
+    def fix_e721(self, _):
+        return self.refactor('idioms')
 
     def fix_w291(self, result):
         fixed_line = self.source[result['line'] - 1].rstrip()
@@ -595,181 +747,42 @@ class FixPEP8(object):
         self.source = source
         return range(1, 1 + original_length)
 
-    def fix_w601(self, result):
-        target = self.source[result['line'] - 1]
-        _before = ""
-        _after = ""
-        _symbol = ""
+    def refactor(self, fixer_name, ignore=None):
+        """Return refactored code using lib2to3.
 
-        # Skip complicated cases
-        if target.count('(') > 1 or target.count(')') > 1:
-            return []
-        if target.count('(') != target.count(')'):
-            return []
-        if target.count(',') > 0:
-            return []
+        Skip if ignore string is produced in the refactored code.
 
-        _tmp = target.split(".has_key", 1)
-
-        # find dict symbol
-        _target = _tmp[0]
-        for offset, t in enumerate(_target[::-1]):
-            if t == " ":
-                _before = _target[::-1][:offset - 1:-1]
-                break
-            else:
-                _symbol = t + _symbol
-
-        # find arg of has_key
-        _target = _tmp[1]
-        _level = 0
-        _arg = ""
-        for offset, t in enumerate(_target):
-            if t == "(":
-                _level += 1
-            elif t == ")":
-                _level -= 1
-                if _level == 0:
-                    _after += _target[offset + 1:]
-                    break
-            else:
-                _arg += t
-
-        # Maintain precedence
-        if ' ' in _arg.strip():
-            _arg = '(' + _arg.strip() + ')'
-
-        self.source[result['line'] - 1] = \
-            "".join([_before, _arg, " in ", _symbol, _after])
-
-    def fix_w602(self, result):
-        """Fix deprecated form of raising exception."""
-        line_index = result['line'] - 1
-        line = self.source[line_index]
-
-        split_line = line.split(',')
-        if len(split_line) > 1 and split_line[1].strip().startswith('('):
-            # Give up
-            return []
-
-        if ' or ' in line or ' and ' in line:
-            # Give up
-            return []
-
-        if (line.endswith('\\\n') or
-                line.endswith('\\\r\n') or
-                line.endswith('\\\r')):
-            self.source[line_index] = line.rstrip('\n\r \t\\')
-            self.source[line_index + 1] = \
-                ' ' + self.source[line_index + 1].lstrip()
-            return [line_index + 1, line_index + 2]  # Line indexed at 1
-
-        modified_lines = [1 + line_index]  # Line indexed at 1
-
-        double = '"""'
-        single = "'''"
-        if double in line or single in line:
-            # Move full multiline string to current line
-            if double in line and single in line:
-                quotes = (double if line.find(double) < line.find(single)
-                          else single)
-            elif double in line:
-                quotes = double
-            else:
-                quotes = single
-            assert quotes in line
-
-            # Find last line of multiline string
-            end_line_index = line_index
-            if line.count(quotes) == 1:
-                for i in range(line_index + 1, len(self.source)):
-                    end_line_index = i
-                    if quotes in self.source[i]:
-                        break
-
-            # We do not handle anything other than plain multiline strings
-            if ('(' in self.source[end_line_index] or
-                    '\\' in self.source[end_line_index]):
-                return []
-
-            for i in range(line_index + 1, end_line_index + 1):
-                line_contents = self.source[i]
-                self.source[line_index] += line_contents
-                self.source[i] = ''
-                modified_lines.append(1 + i)  # Line indexed at 1
-            line = self.source[line_index]
-
-        indent, rest = _split_indentation(line)
+        """
+        from lib2to3 import pgen2
         try:
-            ast_body = ast.parse(rest).body[0]
-        except SyntaxError:
-            # Give up
+            new_text = refactor_with_2to3(''.join(self.source),
+                                          fixer_name=fixer_name)
+        except pgen2.parse.ParseError:
             return []
 
-        if len(ast_body._fields) == 3 and ast_body.tback is not None:
-            _id = [indent, ]
-            for node in ast.iter_child_nodes(ast_body):
-                if ast.Str == type(node):
-                    quote_word = line[node.col_offset]
-                    if quote_word * 3 == \
-                            line[node.col_offset:node.col_offset + 3]:
-                        quote_word = quote_word * 3
-                    _id.append(quote_word + node.s + quote_word)
-                    continue
-                if ast.Name == type(node):
-                    _id.append(node.id)
-                    continue
-                try:
-                    _id.append(repr(ast.literal_eval(node)))
-                except ValueError:
-                    # Give up
-                    return []
-
-            # find space and comment
-            sio = StringIO(line)
-            old_tokens = None
-            for tokens in tokenize.generate_tokens(sio.readline):
-                if tokens[0] is tokenize.COMMENT:
-                    comment_offset = old_tokens[3][1]
-                    _id.append(line[comment_offset:])
-                    break
-                elif len(_id) == 4 and tokens[0] is token.NEWLINE:
-                    _id.append(self.newline)
-                    break
-                old_tokens = tokens
-            # Create fixed line and check for correctness
-            candidate = "%sraise %s(%s), None, %s%s" % tuple(_id)
-            pattern = '[)(, ]'
-            if (re.sub(pattern, repl='', string=candidate).replace('None', '')
-                    == re.sub(pattern, repl='', string=line)):
-                self.source[result['line'] - 1] = candidate
-                return modified_lines
-            else:
-                return []
+        if ''.join(self.source).strip() == new_text.strip():
+            return []
         else:
-            self.source[line_index] = _fix_basic_raise(line, self.newline)
+            if ignore:
+                if ignore in new_text and ignore not in ''.join(self.source):
+                    return []
+            original_length = len(self.source)
+            self.source = [new_text]
+            return range(1, 1 + original_length)
 
-        return modified_lines
+    def fix_w601(self, _):
+        return self.refactor('has_key')
 
-    def fix_w603(self, result):
-        target = self.source[result['line'] - 1]
-        self.source[result['line'] - 1] = re.sub('<>', '!=', target, count=1)
+    def fix_w602(self, _):
+        """Fix deprecated form of raising exception."""
+        return self.refactor('raise',
+                             ignore='with_traceback')
 
-    def fix_w604(self, result):
-        target = self.source[result['line'] - 1]
+    def fix_w603(self, _):
+        return self.refactor('ne')
 
-        # We do not support things like
-        #     ``1`` + ``1``
-        # And we do not support multiple lines like
-        #     `(1
-        #      )`
-        if len(re.findall('`+', target)) != 2:
-            return
-
-        start = target.find('`')
-        end = target[::-1].find('`') * -1
-        self.source[result['line'] - 1] = "%srepr(%s)%s" % (
-            target[:start], target[start + 1:end - 1], target[end:])
+    def fix_w604(self, _):
+        return self.refactor('repr')
 
 
 def find_newline(source):
@@ -846,6 +859,7 @@ def _priority_key(pep8_result):
                 'e701',  # Fix multiline colon-based before semicolon based
                 'e702',  # Break multiline statements early
                 'e225', 'e231',  # things that make lines longer
+                'e201',  # Remove extraneous whitespace before breaking lines
                 'e501',  # before we break lines
                 ]
     key = pep8_result['id'].lower()
@@ -856,48 +870,10 @@ def _priority_key(pep8_result):
         return len(priority)
 
 
-def _fix_basic_raise(line, newline):
-    """Fix W602 basic case."""
-    sio = StringIO(line)
-    is_found_raise = False
-    first_comma_found = False
-    comment = ''
-    args = ''
-    indentation = ''
-    exception_type = None
-    for tokens in tokenize.generate_tokens(sio.readline):
-        if tokens[0] is token.INDENT:
-            assert not indentation
-            indentation = tokens[1]
-        elif tokens[1] == 'raise':
-            is_found_raise = True
-        elif tokens[0] is token.NAME and is_found_raise:
-            if exception_type:
-                args += tokens[1]
-            else:
-                exception_type = tokens[1]
-        elif tokens[0] is token.NEWLINE:
-            break
-        elif tokens[0] is not token.DEDENT:
-            if tokens[1].startswith(',') and not first_comma_found:
-                first_comma_found = True
-            elif tokens[1].startswith('#'):
-                assert not comment
-                comment = tokens[1]
-                break
-            else:
-                args += tokens[1]
-    assert exception_type
-    return ''.join([indentation, 'raise ', exception_type,
-                    '(',
-                    args[1:-1] if args.startswith('(') else args,
-                    ')',
-                    comment, newline])
-
-
 def _shorten_line(tokens, source, target, indentation, indent_word, newline,
                   reverse=False):
     """Separate line at OPERATOR."""
+    max_line_width_minus_indentation = MAX_LINE_WIDTH - len(indentation)
     if reverse:
         tokens.reverse()
     for tkn in tokens:
@@ -905,62 +881,58 @@ def _shorten_line(tokens, source, target, indentation, indent_word, newline,
         if token.OP == tkn[0] and tkn[1] != '=':
             offset = tkn[2][1] + 1
             if reverse:
-                if offset > (MAX_LINE_WIDTH - len(indentation) -
+                if offset > (max_line_width_minus_indentation -
                              len(indent_word)):
                     continue
             else:
                 if (len(target.rstrip()) - offset >
-                        (MAX_LINE_WIDTH - len(indentation) -
+                        (max_line_width_minus_indentation -
                          len(indent_word))):
                     continue
             first = source[:offset - len(indentation)]
-            second = (indentation + indent_word +
+
+            second_indent = indentation
+            if first.rstrip().endswith('('):
+                second_indent += indent_word
+            elif '(' in first:
+                second_indent += ' ' * (1 + first.find('('))
+            else:
+                second_indent += indent_word
+
+            second = (second_indent +
                       source[offset - len(indentation):].lstrip())
             if not second.strip():
                 continue
+
             # Don't modify if lines are not short enough
-            if len(first) > MAX_LINE_WIDTH or len(second) > MAX_LINE_WIDTH:
+            if len(first) > max_line_width_minus_indentation:
+                continue
+            if len(second) > MAX_LINE_WIDTH:  # Already includes indentation
                 continue
             # Do not begin a line with a comma
             if second.lstrip().startswith(','):
+                continue
+            # Do end a line with a dot
+            if first.rstrip().endswith('.'):
                 continue
             if tkn[1] in '+-*/':
                 fixed = first + ' \\' + newline + second
             else:
                 fixed = first + newline + second
-            try:
-                ret = compile(fixed, '<string>', 'exec')
-            except SyntaxError:
-                continue
-            if ret:
+            if check_syntax(fixed):
                 return indentation + fixed
     return None
-
-
-def shorten_comment(line, newline):
-    """Return trimmed or split long comment line."""
-    assert len(line) > MAX_LINE_WIDTH
-    line = line.rstrip()
-
-    MIN_CHARACTER_REPEAT = 5
-    if len(line) - len(line.rstrip(line[-1])) >= MIN_CHARACTER_REPEAT:
-        # Trim comments that end with things like ---------
-        return line[:MAX_LINE_WIDTH] + newline
-    else:
-        indentation = _get_indentation(line) + '# '
-        import textwrap
-        split_lines = textwrap.wrap(line.lstrip(' \t#'),
-                                    initial_indent=indentation,
-                                    subsequent_indent=indentation,
-                                    width=MAX_LINE_WIDTH)
-        return newline.join(split_lines) + newline
 
 
 def fix_whitespace(line, offset, replacement):
     """Replace whitespace at offset and return fixed line."""
     # Replace escaped newlines too
-    return (line[:offset].rstrip('\n\r \t\\') +
-            replacement + line[offset:].lstrip('\n\r \t\\'))
+    left = line[:offset].rstrip('\n\r \t\\')
+    right = line[offset:].lstrip('\n\r \t\\')
+    if right.startswith('#'):
+        return line
+    else:
+        return left + replacement + right
 
 
 def _spawn_pep8(pep8_options):
@@ -1236,8 +1208,7 @@ class Wrapper(object):
         return logical_line, mapping
 
     def pep8_expected(self):
-        """Helper function which replicates logic in pep8.py, to know what
-        level to indent things to.
+        """Replicates logic in pep8.py, to know what level to indent things to.
 
         Returns a list of lists; each list represents valid indent levels for
         the line in question, relative from the initial indent.  However, the
@@ -1245,10 +1216,12 @@ class Wrapper(object):
 
         """
 
-        # what follows is an adjusted version of
-        # pep8.py:continuation_line_indentation.  All of the comments have been
+        # What follows is an adjusted version of
+        # pep8.py:continuation_line_indentation. All of the comments have been
         # stripped and the 'yield' statements replaced with 'pass'.
         tokens = self.tokens
+        if not tokens:
+            return
 
         first_row = tokens[0][2][0]
         nrows = 1 + tokens[-1][2][0] - first_row
@@ -1280,11 +1253,11 @@ class Wrapper(object):
                            token_type not in (tokenize.NL, tokenize.NEWLINE))
 
             if newline:
-                # this is where the differences start.  instead of looking at
+                # This is where the differences start. Instead of looking at
                 # the line and determining whether the observed indent matches
                 # our expectations, we decide which type of indentation is in
-                # use at the given indent level, and return the offset.  this
-                # algorithm is succeptable to "carried errors", but should
+                # use at the given indent level, and return the offset. This
+                # algorithm is susceptible to "carried errors", but should
                 # through repeated runs eventually solve indentation for
                 # multi-line expressions less than PEP8_PASSES_MAX lines long.
 
@@ -1295,7 +1268,7 @@ class Wrapper(object):
                 else:
                     open_row = 0
 
-                # that's all we get to work with.  this code attempts to
+                # That's all we get to work with. This code attempts to
                 # "reverse" the below logic, and place into the valid indents
                 # list
                 vi = []
@@ -1430,6 +1403,60 @@ def _leading_space_count(line):
     return i
 
 
+def refactor_with_2to3(source_text, fixer_name):
+    """Use lib2to3 to refactor the source.
+
+    Return the refactored source code.
+
+    """
+    from lib2to3 import refactor
+    fixers = ['lib2to3.fixes.fix_' + fixer_name]
+    tool = refactor.RefactoringTool(
+        fixer_names=fixers,
+        explicit=fixers)
+    return str(tool.refactor_string(source_text, name=''))
+
+
+def break_multi_line(source_text, newline, indent_word):
+    """Break first line of multi-line code.
+
+    Return None if a break is not possible.
+
+    """
+    # Handle special case only.
+    if ('(' in source_text and source_text.rstrip().endswith(',')):
+        index = 1 + source_text.find('(')
+        if index >= MAX_LINE_WIDTH:
+            return None
+
+        # Make sure we are not in a string.
+        for quote in ['"', "'"]:
+            if quote in source_text:
+                if source_text.find(quote) < index:
+                    return None
+
+        # Make sure we are not in a comment.
+        if '#' in source_text:
+            if source_text.find('#') < index:
+                return None
+
+        assert index < len(source_text)
+        return (
+            source_text[:index].rstrip() + newline +
+            _get_indentation(source_text) + indent_word +
+            source_text[index:].lstrip())
+    else:
+        return None
+
+
+def check_syntax(code):
+    """Return True if syntax is okay."""
+    try:
+        return compile(code, '<string>', 'exec')
+    except (SyntaxError, TypeError, UnicodeDecodeError):
+        return False
+
+
 def fix_file(filename, opts, output=sys.stdout):
     tmp_source = read_from_filename(filename)
 
@@ -1529,17 +1556,24 @@ def main():
     while filenames:
         name = filenames.pop(0)
         if opts.recursive and os.path.isdir(name):
-            for root, _, children in os.walk(name):
+            for root, directories, children in os.walk(name):
                 filenames += [os.path.join(root, f) for f in children
-                              if f.endswith('.py')]
+                              if f.endswith('.py') and
+                              not f.startswith('.')]
+                for d in directories:
+                    if d.startswith('.'):
+                        directories.remove(d)
         else:
             if opts.verbose:
                 sys.stderr.write('[file:%s]\n' % name)
             try:
                 fix_file(name, opts)
-            except (UnicodeDecodeError, IOError) as error:
+            except (UnicodeDecodeError, UnicodeEncodeError, IOError) as error:
                 sys.stderr.write(str(error) + '\n')
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(1)

@@ -5,10 +5,10 @@
     // path to autopep8 or "" to use packaged version
     "command": "",
 
-    // select errors / warnings(e.g. ["E4", "W"])
+    // select errors / warnings (e.g. ["E4", "W"])
     "select": [],
 
-    // do not fix these errors / warnings(e.g. ["E4", "W"])
+    // do not fix these errors / warnings (e.g. ["E4", "W"])
     "ignore": ["E501"],
 
     // for debugging purpose (print executed command in console)
