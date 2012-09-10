@@ -54,10 +54,10 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
                 replace_region = self.view.line(sel[0])
 
             scope = self.view.syntax_name(replace_region.end())
-            if not scope.startswith('source.python'):
+            if scope.find('source.python') == -1:
                 sublime.error_message(
-                    'Current scope is {0}.\n'
-                    'Python PEP8 Autoformat apply only on Python code'.format(scope))
+                    'Python PEP8 Autoformat apply only on Python code.\n'
+                    'Current scope is: \"{0}\"'.format(scope))
                 return
 
             source = self.view.substr(replace_region)

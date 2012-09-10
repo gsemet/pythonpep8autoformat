@@ -1,6 +1,9 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2012.09.10-1
+- FIX: Enhance python code recognition
+
 ## 2012.09.07-1
 - autopep8 updated to version 0.8
 
