@@ -32,6 +32,18 @@ IGNORE = ','.join(settings.get('ignore', []))
 SELECT = ','.join(settings.get('select', []))
 AUTOPEP8 = settings.get('command', '')
 
+__file__ = os.path.normpath(os.path.abspath(__file__))
+__path__ = os.path.dirname(__file__)
+libs_path = os.path.join(__path__, 'libs')
+
+if libs_path not in sys.path:
+    sys.path.insert(0, libs_path)
+    
+LIBS_PATH = settings.get('libs_path', [])
+
+for lib_path in LIBS_PATH:
+    if lib_path not in sys.path:
+        sys.path.insert(0, lib_path)
 
 class Pep8AutoformatCommand(sublime_plugin.TextCommand):
 
