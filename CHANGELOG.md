@@ -1,6 +1,14 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2012.09.16-1
+- FIX: Issue #2 raises another issue from autopep8 and Unicode, see [autopep8 issue #40][autopep8-issue40].
+Now uses a fixed autopep8 from [hhatto/fix-github-issue40][fix-github-issue40] branch.
+- Upgrade shipped lib2to3 to version 2.6.8
+
+## 2012.09.14-1
+- FIX: [Issue #2][issue2]. Include lib2to3 in package (Jim Wallace).
+
 ## 2012.09.10-1
 - FIX: Enhance python code recognition
 
@@ -8,7 +16,7 @@ Python PEP8 Autoformat
 - autopep8 updated to version 0.8
 
 ## 2012.08.02-1
-- Python PEP8 Autoformat is now installable via [Sublime Package Control](http://wbond.net/sublime_packages/package_control)
+- Python PEP8 Autoformat is now installable via [Sublime Package Control][spp]
 
 ## 2012.07.22-1
 - Cosmetic code changes
@@ -52,8 +60,15 @@ Python PEP8 Autoformat
 		}
 
 ## 2012.07.17-1
-- Source code published on [bitbucket](https://bitbucket.org/StephaneBunel/pythonpep8autoformat).
+- Source code published on [bitbucket][sources].
 
 ## 2012.07.15-1
 - Learning how to create a plug-in for Sublime text 2,
 - and write the first lines of code.
+
+
+[sources]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat
+[spp]: http://wbond.net/sublime_packages/package_control
+[issue2]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/2/import-error-during-formatting
+[autopep8-issue40]: https://github.com/hhatto/autopep8/issues/40
+[fix-github-issue40]: https://github.com/hhatto/autopep8/tree/fix-github-issue40

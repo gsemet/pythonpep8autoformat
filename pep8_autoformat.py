@@ -21,29 +21,23 @@ import tempfile
 import sublime
 import sublime_plugin
 
-try:
-    import autopep8
-except:
-    sublime.error_message('Cannot import autopep8!\n{0}'.format(sys.exc_info[1]))
-    raise
-
 settings = sublime.load_settings('pep8_autoformat.sublime-settings')
 IGNORE = ','.join(settings.get('ignore', []))
 SELECT = ','.join(settings.get('select', []))
 AUTOPEP8 = settings.get('command', '')
 
-__file__ = os.path.normpath(os.path.abspath(__file__))
-__path__ = os.path.dirname(__file__)
-libs_path = os.path.join(__path__, 'libs')
-
+pkg_path = os.path.abspath(os.path.dirname(__file__))
+libs_path = os.path.join(pkg_path, 'libs')
 if libs_path not in sys.path:
     sys.path.insert(0, libs_path)
-    
-LIBS_PATH = settings.get('libs_path', [])
+(sys.path.insert(0, p) for p in settings.get('libs_path', []) if p not in sys.path)
 
-for lib_path in LIBS_PATH:
-    if lib_path not in sys.path:
-        sys.path.insert(0, lib_path)
+try:
+    import autopep8
+except:
+    sublime.error_message('Cannot import pep8 or autopep8!\n{0}'.format(sys.exc_info[1]))
+    raise
+
 
 class Pep8AutoformatCommand(sublime_plugin.TextCommand):
 
@@ -93,8 +87,15 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
                     self.select = SELECT
                     self.verbose = False
 
-            fix = autopep8.FixPEP8(source_file, options(), source.encode('utf-8'))
-            self.view.replace(edit, replace_region, fix.fix().decode('utf-8'))
+            try:
+                fix = autopep8.FixPEP8(fname, options())
+                fixed = fix.fix()  # -- does not alway return Unicode string !
+                if isinstance(fixed, str):
+                    fixed = fixed.decode('utf-8')
+                self.view.replace(edit, replace_region, fixed)
+            except:
+                sublime.error_message(str(sys.exc_info()[1]))
+                raise
         else:
             cmd = [AUTOPEP8, "--in-place"]
             if IGNORE:

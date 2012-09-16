@@ -32,7 +32,7 @@ on your system, you have to set up the path to autopep8 (see below).
 
 ## Settings
 
-You'll find default settings in file `pep8_autoformat.sublime-settings`.
+You'll find settings in Preferences menu (Preferences -> Package Settings -> Python PEP8 Autoformat -> ...).
 
     {
         // autoformat code on save ?
@@ -51,9 +51,7 @@ You'll find default settings in file `pep8_autoformat.sublime-settings`.
         "show_command": true
     }
 
-The first time you'll want to change them use Settings menu: Preferences > Packages Settings > Python PEP8 Autoformat > ...
-Open both "Settings - Default" AND "Settings - User". Copy Default settings to User settings, modify
-User settings to your liking and save. By doing this way, your personal settings will be kept safe over plug-in upgrades.
+By editing User settings, your personal liking will be kept safe over plug-in upgrades.
 
 ## Usage
 
