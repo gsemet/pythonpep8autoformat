@@ -26,13 +26,12 @@ import copy
 import os
 import sys
 import inspect
+import codecs
+import locale
 try:
     from StringIO import StringIO
 except ImportError:
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
+    from io import StringIO
 import token
 import tokenize
 from optparse import OptionParser
@@ -40,9 +39,17 @@ from subprocess import Popen, PIPE
 from difflib import unified_diff
 import tempfile
 
+# from distutils.version import StrictVersion
+# try:
+#     import pep8
+#     if StrictVersion(pep8.__version__) < StrictVersion('1.3a2'):
+#         pep8 = None
+# except ImportError:
+#     pep8 = None
+
 import pep8
 
-__version__ = '0.8'
+__version__ = '0.8.1'
 
 
 PEP8_BIN = 'pep8'
@@ -753,7 +760,8 @@ class FixPEP8(object):
         try:
             new_text = refactor_with_2to3(''.join(self.source),
                                           fixer_name=fixer_name)
-        except pgen2.parse.ParseError:
+        except (pgen2.parse.ParseError,
+                UnicodeDecodeError, UnicodeEncodeError):
             return []
 
         try:
@@ -1561,6 +1569,11 @@ def main():
         assert not opts.recursive
         filenames = args[:1]
 
+    if sys.version_info[0] >= 3:
+        output = sys.stdout
+    else:
+        output = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
+
     while filenames:
         name = filenames.pop(0)
         if opts.recursive and os.path.isdir(name):
@@ -1575,7 +1588,7 @@ def main():
             if opts.verbose:
                 sys.stderr.write('[file:%s]\n' % name)
             try:
-                fix_file(name, opts)
+                fix_file(name, opts, output)
             except (UnicodeDecodeError, UnicodeEncodeError, IOError) as error:
                 sys.stderr.write(str(error) + '\n')
 

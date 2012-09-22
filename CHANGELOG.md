@@ -1,6 +1,9 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2012.09.22-1
+- Upgrade autopep8 utility to version 0.8.1.
+
 ## 2012.09.16-1
 - FIX: Issue #2 raises another issue from autopep8 and Unicode, see [autopep8 issue #40][autopep8-issue40].
 Now uses a fixed autopep8 from [hhatto/fix-github-issue40][fix-github-issue40] branch.

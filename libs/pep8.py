@@ -93,7 +93,7 @@ for space.
 
 """
 
-__version__ = '1.3.3'
+__version__ = '1.3.4a0'
 
 import os
 import sys
@@ -472,7 +472,7 @@ def continuation_line_indentation(logical_line, tokens, indent_level, verbose):
     # visual indents
     indent = [indent_level]
     indent_chances = {}
-    last_indent = (0, 0)
+    last_indent = tokens[0][2]
     if verbose >= 3:
         print(">>> " + tokens[0][4].rstrip())
 
@@ -540,7 +540,8 @@ def continuation_line_indentation(logical_line, tokens, indent_level, verbose):
                 yield start, "%s continuation line %s" % error
 
         # look for visual indenting
-        if parens[row] and token_type != tokenize.NL and not indent[depth]:
+        if (parens[row] and token_type not in (tokenize.NL, tokenize.COMMENT)
+                and not indent[depth]):
             indent[depth] = start[1]
             indent_chances[start[1]] = True
             if verbose >= 4:
@@ -829,7 +830,7 @@ def imports_on_separate_lines(logical_line):
     line = logical_line
     if line.startswith('import '):
         found = line.find(',')
-        if -1 < found:
+        if -1 < found and ';' not in line[:found]:
             yield found, "E401 multiple imports on one line"
 
 
@@ -1051,7 +1052,9 @@ else:
             f.close()
 
     isidentifier = str.isidentifier
-    stdin_get_value = TextIOWrapper(sys.stdin.buffer, errors='ignore').read
+
+    def stdin_get_value():
+        return TextIOWrapper(sys.stdin.buffer, errors='ignore').read()
 readlines.__doc__ = "    Read the source code."
 
 
