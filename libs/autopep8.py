@@ -47,7 +47,7 @@ import tempfile
 # except ImportError:
 #     pep8 = None
 
-import pep8
+import ppapep8 as pep8
 
 __version__ = '0.8.1'
 
@@ -168,7 +168,11 @@ class FixPEP8(object):
     def _fix_source(self, results):
         completed_lines = set()
         for result in sorted(results, key=_priority_key):
+            
+            print(result)
+
             if result['line'] in completed_lines:
+                print('already completed')
                 continue
 
             fixed_methodname = 'fix_%s' % result['id'].lower()
