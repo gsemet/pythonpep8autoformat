@@ -1,6 +1,9 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2012.09.29-1
+- FIX: [Issue #3][issue3]. ST2 pep8 version issue on OS X.
+
 ## 2012.09.22-1
 - Upgrade autopep8 utility to version 0.8.1.
 
@@ -75,3 +78,4 @@ Now uses a fixed autopep8 from [hhatto/fix-github-issue40][fix-github-issue40] b
 [issue2]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/2/import-error-during-formatting
 [autopep8-issue40]: https://github.com/hhatto/autopep8/issues/40
 [fix-github-issue40]: https://github.com/hhatto/autopep8/tree/fix-github-issue40
+[issue3]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/3/downloaded-and-getting-error-on-ctrl-shift
