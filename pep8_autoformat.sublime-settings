@@ -2,15 +2,9 @@
 	// autoformat code on save ?
 	"autoformat_on_save": false,
 
-    // path to autopep8 or "" to use packaged version
-    "command": "",
-
     // select errors / warnings (e.g. ["E4", "W"])
     "select": [],
 
     // do not fix these errors / warnings (e.g. ["E4", "W"])
-    "ignore": ["E501"],
-
-    // for debugging purpose (print executed command in console)
-    "show_command": false
+    "ignore": ["E501"]
 }

@@ -14,17 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import sys
 import os
-import subprocess
-import tempfile
 import sublime
 import sublime_plugin
 
 settings = sublime.load_settings('pep8_autoformat.sublime-settings')
 IGNORE = ','.join(settings.get('ignore', []))
 SELECT = ','.join(settings.get('select', []))
-AUTOPEP8 = settings.get('command', '')
 
 pkg_path = os.path.abspath(os.path.dirname(__file__))
 libs_path = os.path.join(pkg_path, 'libs')
@@ -70,66 +68,26 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         else:
             return
 
-        #-- Open tmpfile
-        source_file = tempfile.NamedTemporaryFile(delete=False)
-
-        #-- Write code to tmpfile
-        source_file.write(source.encode('utf-8'))
-
-        fname = source_file.name
-        source_file.close()
-
         #-- Autoformat
-        if AUTOPEP8 == '':
-            class options(object):
-                def __init__(self):
-                    self.ignore = IGNORE
-                    self.select = SELECT
-                    self.verbose = False
+        class options(object):
+            def __init__(self):
+                self.ignore = IGNORE
+                self.select = SELECT
+                self.verbose = False
 
-            try:
-                fix = autopep8.FixPEP8(fname, options())
-                fixed = fix.fix()  # -- does not alway return Unicode string !
-                if isinstance(fixed, str):
-                    fixed = fixed.decode('utf-8')
-                self.view.replace(edit, replace_region, fixed)
-            except:
-                sublime.error_message(str(sys.exc_info()[1]))
-                raise
-        else:
-            cmd = [AUTOPEP8, "--in-place"]
-            if IGNORE:
-                cmd.append('--ignore')
-                cmd.append(IGNORE)
-            if SELECT:
-                cmd.append('--select')
-                cmd.append(SELECT)
-            cmd.append(fname)
-            if settings.get("show_command"):
-                print('cmd="{0}"'.format(' '.join(cmd)))
+        refix = True
+        while refix:
+            fix = autopep8.FixPEP8(None, options(), contents=source)
+            fixed = fix.fix()  # -- does not alway return Unicode string !
+            #-- seems no more necessary with autopep8 commit 524505845cf72c2b5a072e7f2fdc7a0824ada12a
+            if isinstance(fixed, str):
+                fixed = fixed.decode('utf-8')
+            if fixed == source:
+                refix = False
+            else:
+                source = copy.copy(fixed)
 
-            try:
-                subprocess.call(cmd)
-                with file(fname, 'rb') as f:
-                    output = f.read().decode('utf-8')
-                self.view.replace(edit, replace_region, output)
-            except OSError as e:
-                if e.errno == 2:
-                    msg = '"{0}" not found !\n' \
-                        'Set "command" path in Python PEP8 Autoformat settings.\n' \
-                        'See https://github.com/hhatto/autopep8#installation if autopep8 is not installed'.format(
-                        AUTOPEP8)
-                else:
-                    msg = e.message
-                sublime.error_message(msg)
-            except:
-                sublime.error_message(str(sys.exc_info()[1]))
-
-        #-- Remove tempfile
-        try:
-            os.unlink(fname)
-        except:
-            sublime.error_message(str(sys.exc_info()[1]))
+        self.view.replace(edit, replace_region, source)
 
         if pos:
             self.view.sel().clear()
@@ -141,7 +99,7 @@ class Pep8AutoformatBackground(sublime_plugin.EventListener):
 
     def on_post_save(self, view):
         syntax = view.settings().get('syntax')
-        if not syntax.endswith('Python.tmLanguage'):
+        if syntax.find('Python.tmLanguage') == -1:
             return
 
         # do autoformat on file save if allowed in settings

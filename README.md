@@ -1,13 +1,13 @@
 Two days ago, looking for a possible [Eclipse][] replacement, I gave a try to [Sublime Text 2][].
-One of my main usages of [PyDev][] (very good Eclipse plug-in for Python coder) is the code formatter.
+One of my main usages of [PyDev][] (very good Eclipse plug-in for Python developer) is the code formatter.
 Under ST2 I installed [PythonTidy][] but unfortunately it did not work for me.
 So, for fun and learning, I decided to create a new ST2 plug-in: **Python PEP8 Autoformat**.
-It is based on [autopep8][] as code formatter.
+It is based on [autopep8][] as code formatter and [pep8][] as code linter.
 
 # Python PEP8 Autoformat
 
 Python PEP8 Autoformat is a Sublime Text 2 plug-in to interactively reformat Python source code according
-to [PEP8][] (Style Guide for Python Code). 
+to [PEP-8][] (Style Guide for Python Code). 
 
 ## Installation
 
@@ -38,17 +38,11 @@ You'll find settings in Preferences menu (Preferences -> Package Settings -> Pyt
         // autoformat code on save ?
         "autoformat_on_save": false,
 
-        // path to autopep8 or "" to use packaged version
-        "command": "",
-
         // select errors / warnings(e.g. ["E4", "W"])
         "select": [],
 
         // do not fix these errors / warnings(e.g. ["E4", "W"])
-        "ignore": ["E501"],
-
-        // for debugging purpose (print executed command in console)
-        "show_command": true
+        "ignore": ["E501"]
     }
 
 By editing User settings, your personal liking will be kept safe over plug-in upgrades.
@@ -98,12 +92,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 
+[PEP-8]:                   http://www.python.org/dev/peps/pep-0008/
 [Sublime Text 2]:          http://www.sublimetext.com/
 [autopep8]:                https://github.com/hhatto/autopep8
+[pep8]:                    https://github.com/jcrocholl/pep8
 [PythonTidy]:              https://github.com/witsch/SublimePythonTidy
 [Eclipse]:                 http://www.eclipse.org/
 [PyDev]:                   http://pydev.org/
-[PEP8]:                    http://www.python.org/dev/peps/pep-0008/
 [Sublime Package Control]: http://wbond.net/sublime_packages/package_control
 [SublimeLinter]:           https://github.com/SublimeLinter/SublimeLinter
 [MarkdownPreview]:         https://github.com/revolunet/sublimetext-markdown-preview

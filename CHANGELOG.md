@@ -1,6 +1,13 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2012.10.14-1
+- FIX: [Issue #4][issue4] (format only one round).
+- Upgrade shipped autopep8.
+- Remove "command" and "show_command" settings since pep8 and autopep8 are bundled with plug-in
+- autopep8: Some strange behavior persists when code contains non-ascii characters.
+  Ex: [Fixing W601][fix-github-issue40] silently fails if source code contains non-ascii.
+
 ## 2012.09.29-1
 - FIX: [Issue #3][issue3]. ST2 pep8 version issue on OS X.
 
@@ -77,5 +84,6 @@ Now uses a fixed autopep8 from [hhatto/fix-github-issue40][fix-github-issue40] b
 [spp]: http://wbond.net/sublime_packages/package_control
 [issue2]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/2/import-error-during-formatting
 [autopep8-issue40]: https://github.com/hhatto/autopep8/issues/40
-[fix-github-issue40]: https://github.com/hhatto/autopep8/tree/fix-github-issue40
+[fix-github-issue40]: https://github.com/hhatto/autopep8/issues/40
 [issue3]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/3/downloaded-and-getting-error-on-ctrl-shift
+[issue4]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/4/format-only-one-round
