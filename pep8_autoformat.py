@@ -23,6 +23,7 @@ import sublime_plugin
 settings = sublime.load_settings('pep8_autoformat.sublime-settings')
 IGNORE = ','.join(settings.get('ignore', []))
 SELECT = ','.join(settings.get('select', []))
+MAX_LINE_LENGTH = settings.get('max-line-length', 79)
 
 pkg_path = os.path.abspath(os.path.dirname(__file__))
 libs_path = os.path.join(pkg_path, 'libs')
@@ -74,6 +75,7 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
                 self.ignore = IGNORE
                 self.select = SELECT
                 self.verbose = False
+                self.max_line_length = MAX_LINE_LENGTH
 
         refix = True
         while refix:

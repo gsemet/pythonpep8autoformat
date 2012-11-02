@@ -42,7 +42,10 @@ You'll find settings in Preferences menu (Preferences -> Package Settings -> Pyt
         "select": [],
 
         // do not fix these errors / warnings(e.g. ["E4", "W"])
-        "ignore": ["E501"]
+        "ignore": ["E501"],
+
+        // Maximum line length
+        "max-line-length": 79
     }
 
 By editing User settings, your personal liking will be kept safe over plug-in upgrades.
