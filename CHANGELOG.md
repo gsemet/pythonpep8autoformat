@@ -1,6 +1,10 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2012.11.24-01
+ - Update autopep8 to version 0.8.3.
+ - Add new setting "aggressive" (default false) to enable possibly unsafe changes (E711, E712)
+
 ## 2012.11.02-1
  - Update autopep8 to version 0.8.2. This version fix [W601][fix-github-issue40]
  - Add new setting "max-line-length" (default is 79).

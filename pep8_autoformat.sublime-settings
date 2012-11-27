@@ -9,5 +9,8 @@
     "ignore": ["E501"],
 
     // Maximum line length
-    "max-line-length": 79
+    "max-line-length": 79,
+
+    // enable possibly unsafe changes (E711, E712)
+    "aggressive": false
 }

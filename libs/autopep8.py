@@ -18,10 +18,9 @@
 # CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-"""
-A tool that automatically formats Python code to conform to the PEP 8 style
-guide.
-"""
+
+"""Automatically formats Python code to conform to the PEP 8 style guide."""
+
 from __future__ import print_function
 
 import copy
@@ -30,7 +29,6 @@ import re
 import sys
 import inspect
 import codecs
-import locale
 try:
     from StringIO import StringIO
 except ImportError:
@@ -44,7 +42,7 @@ import tempfile
 
 import ppapep8 as pep8
 
-__version__ = '0.8.2'
+__version__ = '0.8.3'
 
 
 PEP8_BIN = 'pep8'
@@ -53,11 +51,15 @@ LF = '\n'
 CRLF = '\r\n'
 
 
-def open_with_encoding(filename, encoding, mode='r'):
+def open_with_encoding(filename, encoding=None, mode='r'):
     """Return opened file with a specific encoding."""
+    if not encoding:
+        encoding = detect_encoding(filename)
+
     try:
         # Python 3
-        return open(filename, mode=mode, encoding=encoding)
+        return open(filename, mode=mode, encoding=encoding,
+                    newline='')  # Preserve line endings
     except TypeError:
         # Python 2
         return codecs.open(filename, mode=mode, encoding=encoding)
@@ -66,36 +68,22 @@ def open_with_encoding(filename, encoding, mode='r'):
 def detect_encoding(filename):
     """Return file encoding."""
     try:
-        # Python 3
-        try:
-            with open(filename, 'rb') as input_file:
-                encoding = tokenize.detect_encoding(input_file.readline)[0]
+        with open(filename, 'rb') as input_file:
+            from lib2to3.pgen2 import tokenize as lib2to3_tokenize
+            encoding = lib2to3_tokenize.detect_encoding(input_file.readline)[0]
 
-                # Check for correctness of encoding
-                import io
-                with io.TextIOWrapper(input_file, encoding) as wrapper:
-                    wrapper.read()
-
-            return encoding
-        except (SyntaxError, LookupError, UnicodeDecodeError):
-            return 'latin-1'
-    except AttributeError:
-        # Python 2
-        encoding = 'utf-8'
-        try:
-            # Check for correctness of encoding
-            with open_with_encoding(filename, encoding) as input_file:
-                input_file.read()
-        except UnicodeDecodeError:
-            encoding = 'latin-1'
+        # Check for correctness of encoding
+        with open_with_encoding(filename, encoding) as test_file:
+            test_file.read()
 
         return encoding
+    except (SyntaxError, LookupError, UnicodeDecodeError):
+        return 'latin-1'
 
 
 def read_from_filename(filename, readlines=False):
     """Return contents of file."""
-    with open_with_encoding(filename,
-                            encoding=detect_encoding(filename)) as input_file:
+    with open_with_encoding(filename) as input_file:
         return input_file.readlines() if readlines else input_file.read()
 
 
@@ -250,7 +238,8 @@ class FixPEP8(object):
                 n=len(results), progress=progress), file=sys.stderr)
 
         self._fix_source(filter_results(source=''.join(self.source),
-                                        results=results))
+                                        results=results,
+                                        aggressive=self.options.aggressive))
         return ''.join(self.source)
 
     def fix_e101(self, _):
@@ -330,9 +319,7 @@ class FixPEP8(object):
             return []
         ls, _, original = logical
         try:
-            rewrapper = Wrapper(
-                original, hard_wrap=self.options.max_line_length,
-                soft_wrap=self.options.max_line_length - 7)
+            rewrapper = Wrapper(original)
         except (tokenize.TokenError, IndentationError):
             return []
         valid_indents = rewrapper.pep8_expected()
@@ -457,13 +444,15 @@ class FixPEP8(object):
         original = self.source[line_index]
         fixed = original
 
-        if '(' in logical_lines[0]:
-            fixed = logical_lines[0].find('(') * ' ' + original.lstrip()
-        elif logical_lines[0].rstrip().endswith('\\'):
+        if logical_lines[0].rstrip().endswith('\\'):
             fixed = (_get_indentation(logical_lines[0]) +
                      self.indent_word + original.lstrip())
         else:
-            return []
+            for symbol in '([{':
+                if symbol in logical_lines[0]:
+                    fixed = logical_lines[0].find(
+                        symbol) * ' ' + original.lstrip()
+                    break
 
         if fixed == original:
             return []
@@ -479,7 +468,9 @@ class FixPEP8(object):
         # When multiline strings are involved, pep8 reports the error as
         # being at the start of the multiline string, which doesn't work
         # for us.
-        if '"""' in target or "'''" in target:
+        if ('"""' in target or
+            "'''" in target or
+                target.rstrip().endswith('\\')):
             return []
 
         fixed = fix_whitespace(target,
@@ -544,8 +535,7 @@ class FixPEP8(object):
                 fixed.endswith('=\\\r\n') or
                 fixed.endswith('=\\\r')):
             self.source[line_index] = fixed.rstrip('\n\r \t\\')
-            self.source[line_index + 1] = \
-                self.source[line_index + 1].lstrip()
+            self.source[line_index + 1] = self.source[line_index + 1].lstrip()
             return [line_index + 1, line_index + 2]  # Line indexed at 1
 
         self.source[result['line'] - 1] = fixed
@@ -568,6 +558,14 @@ class FixPEP8(object):
         line_index = result['line'] - 1
         target = self.source[line_index]
         offset = result['column'] - 1
+
+        # When multiline strings are involved, pep8 reports the error as
+        # being at the start of the multiline string, which doesn't work
+        # for us.
+        if ('"""' in target or
+            "'''" in target or
+                target.rstrip().endswith('\\')):
+            return []
 
         fixed = fix_whitespace(target,
                                offset=offset,
@@ -640,6 +638,25 @@ class FixPEP8(object):
         """Try to make lines fit within --max-line-length characters."""
         line_index = result['line'] - 1
         target = self.source[line_index]
+
+        if target.lstrip().startswith('#'):
+            # Shorten comment if it is the last comment line.
+            try:
+                if self.source[line_index + 1].lstrip().startswith('#'):
+                    return []
+            except IndexError:
+                pass
+
+            # Wrap commented lines.
+            fixed = shorten_comment(
+                line=target,
+                newline=self.newline,
+                max_line_length=self.options.max_line_length)
+            if fixed == self.source[line_index]:
+                return []
+            else:
+                self.source[line_index] = fixed
+                return
 
         indent = _get_indentation(target)
         source = target[len(indent):]
@@ -732,7 +749,7 @@ class FixPEP8(object):
         self.source[line_index] = first + self.newline + second
 
     def fix_e711(self, result):
-        """Fix comparison."""
+        """Fix comparison with None."""
         line_index = result['line'] - 1
         target = self.source[line_index]
         offset = result['column'] - 1
@@ -756,6 +773,37 @@ class FixPEP8(object):
             return []
 
         self.source[line_index] = ' '.join([left, new_center, right])
+
+    def fix_e712(self, result):
+        """Fix comparison with boolean."""
+        line_index = result['line'] - 1
+        target = self.source[line_index]
+        offset = result['column'] - 1
+
+        right_offset = offset + 2
+        if right_offset >= len(target):
+            return []
+
+        left = target[:offset].rstrip()
+        center = target[offset:right_offset]
+        right = target[right_offset:].lstrip()
+
+        # Handle simple cases only.
+        new_right = None
+        if center.strip() == '==':
+            if re.match(r'\bTrue\b', right):
+                new_right = re.sub(r'\bTrue\b *', '', right, count=1)
+        elif center.strip() == '!=':
+            if re.match(r'\bFalse\b', right):
+                new_right = re.sub(r'\bFalse\b *', '', right, count=1)
+
+        if new_right is None:
+            return []
+
+        if new_right[0].isalnum():
+            new_right = ' ' + new_right
+
+        self.source[line_index] = left + new_right
 
     def fix_e721(self, _):
         """Switch to use isinstance()."""
@@ -835,11 +883,11 @@ def find_newline(source):
     """Return type of newline used in source."""
     cr, lf, crlf = 0, 0, 0
     for s in source:
-        if CRLF in s:
+        if s.endswith(CRLF):
             crlf += 1
-        elif CR in s:
+        elif s.endswith(CR):
             cr += 1
-        elif LF in s:
+        elif s.endswith(LF):
             lf += 1
     _max = max(cr, crlf, lf)
     if _max == lf:
@@ -965,6 +1013,8 @@ def _shorten_line(tokens, source, target, indentation, indent_word, newline,
                 fixed = first + ' \\' + newline + second
             else:
                 fixed = first + newline + second
+
+            # Only fix if syntax is okay.
             if check_syntax(fixed):
                 return indentation + fixed
     return None
@@ -1048,7 +1098,7 @@ class Reindenter(object):
         self.string_content_line_numbers = multiline_string_lines(
             ''.join(self.raw))
 
-        # File lines, rstripped & tab-expanded.  Dummy at start is so
+        # File lines, rstripped & tab-expanded. Dummy at start is so
         # that we can use tokenize's 1-based line numbering easily.
         # Note that a line is all-blank iff it is a newline.
         self.lines = []
@@ -1065,7 +1115,7 @@ class Reindenter(object):
         self.index = 1  # index into self.lines of next line
 
         # List of (lineno, indentlevel) pairs, one for each stmt and
-        # comment line.  indentlevel is -1 for comment lines, as a
+        # comment line. indentlevel is -1 for comment lines, as a
         # signal that tokenize doesn't know what to do about them;
         # indeed, they're our headache!
         self.stats = []
@@ -1105,7 +1155,7 @@ class Reindenter(object):
             if want < 0:
                 # A comment line.
                 if have:
-                    # An indented comment line.  If we saw the same
+                    # An indented comment line. If we saw the same
                     # indentation before, reuse what it most recently
                     # mapped to.
                     want = have2want.get(have, - 1)
@@ -1218,13 +1268,9 @@ class Wrapper(object):
         tokenize.DEDENT, tokenize.NEWLINE, tokenize.ENDMARKER
     ])
 
-    def __init__(self, physical_lines, hard_wrap=79, soft_wrap=72):
-        if type(physical_lines) != list:
-            physical_lines = physical_lines.splitlines(keepends=True)
+    def __init__(self, physical_lines):
         self.lines = physical_lines
         self.index = 0
-        self.hard_wrap = hard_wrap
-        self.soft_wrap = soft_wrap
         self.tokens = list()
         self.rel_indent = None
         sio = StringIO(''.join(physical_lines))
@@ -1272,7 +1318,7 @@ class Wrapper(object):
         """Replicate logic in pep8.py, to know what level to indent things to.
 
         Return a list of lists; each list represents valid indent levels for
-        the line in question, relative from the initial indent.  However, the
+        the line in question, relative from the initial indent. However, the
         first entry is the indent level which was expected.
 
         """
@@ -1363,8 +1409,8 @@ class Wrapper(object):
                     vi.append(indent_level + hang)
 
                 # about the best we can do without look-ahead
-                if indent_next and vi[0] == indent_level + 4 and \
-                        nrows == row + 1:
+                if (indent_next and vi[0] == indent_level + 4 and
+                        nrows == row + 1):
                     vi[0] += 4
 
                 if add_second_chances:
@@ -1381,7 +1427,8 @@ class Wrapper(object):
 
                 valid_indents[row] = vi
 
-                # ...returning to original continuation_line_identation func...
+                # Returning to original continuation_line_indentation() from
+                # pep8.
                 visual_indent = indent_chances.get(start[1])
                 last_indent = start
                 rel_indent[row] = start[1] - indent_level
@@ -1487,29 +1534,30 @@ def break_multi_line(source_text, newline, indent_word, max_line_length):
 
     """
     # Handle special case only.
-    if ('(' in source_text and source_text.rstrip().endswith(',')):
-        index = 1 + source_text.find('(')
-        if index >= max_line_length:
-            return None
-
-        # Make sure we are not in a string.
-        for quote in ['"', "'"]:
-            if quote in source_text:
-                if source_text.find(quote) < index:
-                    return None
-
-        # Make sure we are not in a comment.
-        if '#' in source_text:
-            if source_text.find('#') < index:
+    for symbol in '([{':
+        if (symbol in source_text and source_text.rstrip().endswith(',')):
+            index = 1 + source_text.find(symbol)
+            if index >= max_line_length:
                 return None
 
-        assert index < len(source_text)
-        return (
-            source_text[:index].rstrip() + newline +
-            _get_indentation(source_text) + indent_word +
-            source_text[index:].lstrip())
-    else:
-        return None
+            # Make sure we are not in a string.
+            for quote in ['"', "'"]:
+                if quote in source_text:
+                    if source_text.find(quote) < index:
+                        return None
+
+            # Make sure we are not in a comment.
+            if '#' in source_text:
+                if source_text.find('#') < index:
+                    return None
+
+            assert index < len(source_text)
+            return (
+                source_text[:index].rstrip() + newline +
+                _get_indentation(source_text) + indent_word +
+                source_text[index:].lstrip())
+
+    return None
 
 
 def check_syntax(code):
@@ -1520,31 +1568,50 @@ def check_syntax(code):
         return False
 
 
-def filter_results(source, results):
+def filter_results(source, results, aggressive=False):
     """Filter out spurious reports from pep8.
 
-    Currently we filter out errors about indentation in multiline strings.
+    If aggressive is True, we allow possibly unsafe fixes (E711, E712).
 
     """
-    string_line_numbers = multiline_string_lines(source)
+    non_docstring_string_line_numbers = multiline_string_lines(
+        source, include_docstrings=False)
+    all_string_line_numbers = multiline_string_lines(
+        source, include_docstrings=True)
+
+    split_source = [None] + source.splitlines()
 
     for r in results:
-        if r['line'] in string_line_numbers:
-            if r['id'].lower().startswith('e1'):
+        issue_id = r['id'].lower()
+
+        if r['line'] in non_docstring_string_line_numbers:
+            if issue_id.startswith('e1'):
                 continue
-            elif r['id'].lower() in ['e501', 'w191']:
+            elif issue_id in ['e501', 'w191']:
+                continue
+
+        if r['line'] in all_string_line_numbers:
+            if issue_id in ['e501']:
                 continue
 
         # Filter out incorrect E101 reports when there are no tabs.
         # pep8 will complain about this even if the tab indentation found
         # elsewhere is in a multi-line string.
-        if r['id'].lower() == 'e101' and '\t' not in source[r['line'] - 1]:
+        if issue_id == 'e101' and '\t' not in split_source[r['line']]:
+            continue
+
+        if issue_id in ['e711', 'e712'] and not aggressive:
+            continue
+
+        # pep8 should not complain about SQLAlchemy queries. SQLAlchemy
+        # overrides the equality operators.
+        if issue_id == 'e711' and 'filter' in split_source[r['line']]:
             continue
 
         yield r
 
 
-def multiline_string_lines(source):
+def multiline_string_lines(source, include_docstrings=False):
     """Return line numbers that are within multiline strings.
 
     The line numbers are indexed at 1.
@@ -1558,16 +1625,17 @@ def multiline_string_lines(source):
     try:
         for t in tokenize.generate_tokens(sio.readline):
             token_type = t[0]
-            token_string = t[1]
+            start_row = t[2][0]
+            end_row = t[3][0]
             start_row = t[2][0]
             end_row = t[3][0]
 
-            if (token_type == tokenize.STRING and
-                    starts_with_triple(token_string) and
-                    previous_token_type != tokenize.INDENT):
-                # We increment by one since we want the contents of the
-                # string.
-                line_numbers |= set(range(1 + start_row, 1 + end_row))
+            if (token_type == tokenize.STRING and start_row != end_row):
+                if (include_docstrings or
+                        previous_token_type != tokenize.INDENT):
+                    # We increment by one since we want the contents of the
+                    # string.
+                    line_numbers |= set(range(1 + start_row, 1 + end_row))
 
             previous_token_type = token_type
     except (IndentationError, tokenize.TokenError):
@@ -1576,40 +1644,91 @@ def multiline_string_lines(source):
     return line_numbers
 
 
-def starts_with_triple(string):
-    """Return True if the string starts with triple single/double quotes."""
-    return (string.strip().startswith('"""') or
-            string.strip().startswith("'''"))
+def shorten_comment(line, newline, max_line_length):
+    """Return trimmed or split long comment line."""
+    assert len(line) > max_line_length
+    line = line.rstrip()
+
+    # PEP 8 recommends 72 characters for comment text.
+    indentation = _get_indentation(line) + '# '
+    max_line_length = min(max_line_length,
+                          len(indentation) + 72)
+
+    MIN_CHARACTER_REPEAT = 5
+    if (len(line) - len(line.rstrip(line[-1])) >= MIN_CHARACTER_REPEAT and
+            not line[-1].isalnum()):
+        # Trim comments that end with things like ---------
+        return line[:max_line_length] + newline
+    elif re.match(r'\s*#+\s*\w+', line):
+        import textwrap
+        split_lines = textwrap.wrap(line.lstrip(' \t#'),
+                                    initial_indent=indentation,
+                                    subsequent_indent=indentation,
+                                    width=max_line_length,
+                                    break_long_words=False)
+        return newline.join(split_lines) + newline
+    else:
+        return line + newline
 
 
-def fix_file(filename, opts, output=sys.stdout):
-    tmp_source = read_from_filename(filename)
+def format_block_comments(source):
+    """Format block comments."""
+    if '#' not in source:
+        # Optimization.
+        return source
 
-    # Add missing newline (important for diff)
-    if tmp_source:
-        tmp_newline = find_newline(tmp_source)
-        if tmp_source == tmp_source.rstrip(tmp_newline):
-            tmp_source += tmp_newline
+    string_line_numbers = multiline_string_lines(source)
+    fixed_lines = []
+    sio = StringIO(source)
+    for (line_number, line) in enumerate(sio.readlines(), start=1):
+        if (re.match(r'\s*#+\w+', line) and
+                line_number not in string_line_numbers):
+            fixed_lines.append(_get_indentation(line) +
+                               '# ' +
+                               line.lstrip().lstrip('#'))
+        else:
+            fixed_lines.append(line)
+
+    return ''.join(fixed_lines)
+
+
+def normalize_line_endings(lines):
+    """Return fixed line endings.
+
+    All lines will be modified to use the most common line ending.
+
+    """
+    newline = find_newline(lines)
+    return [line.rstrip('\n\r') + newline for line in lines]
+
+
+def fix_file(filename, opts=None, output=None):
+    if not opts:
+        opts = parse_args([filename])[0]
+
+    original_source = read_from_filename(filename, readlines=True)
+
+    tmp_source = ''.join(normalize_line_endings(original_source))
 
     fix = FixPEP8(filename, opts, contents=tmp_source)
     fixed_source = fix.fix()
-    original_source = copy.copy(fix.original_source)
     tmp_filename = filename
     if not pep8 or opts.in_place:
         encoding = detect_encoding(filename)
 
+    fixed_source = format_block_comments(fixed_source)
+
     interruption = None
     try:
         # Keep a history to break out of cycles.
-        old_tmp_source = None
+        previous_hashes = set([hash(tmp_source)])
 
         for _ in range(opts.pep8_passes):
-            if fixed_source == tmp_source:
+            if hash(fixed_source) in previous_hashes:
                 break
-            if fixed_source == old_tmp_source:
-                break
+            else:
+                previous_hashes.add(hash(fixed_source))
 
-            old_tmp_source = tmp_source
             tmp_source = copy.copy(fixed_source)
 
             if not pep8:
@@ -1629,16 +1748,23 @@ def fix_file(filename, opts, output=sys.stdout):
     del tmp_source
 
     if opts.diff:
-        new = StringIO(''.join(fix.source))
+        new = StringIO(fixed_source)
         new = new.readlines()
-        output.write(_get_difftext(original_source, new, filename))
+        diff = _get_difftext(original_source, new, filename)
+        if output:
+            output.write(diff)
+        else:
+            return output
     elif opts.in_place:
         fp = open_with_encoding(filename, encoding=encoding,
                                 mode='w')
         fp.write(fixed_source)
         fp.close()
     else:
-        output.write(fixed_source)
+        if output:
+            output.write(fixed_source)
+        else:
+            return fixed_source
 
     if interruption:
         raise interruption
@@ -1676,6 +1802,8 @@ def parse_args(args):
     parser.add_option('--max-line-length', default=79, type=int,
                       help='set maximum allowed line length '
                            '(default: %default)')
+    parser.add_option('--aggressive', action='store_true',
+                      help='enable possibly unsafe changes (E711, E712)')
     opts, args = parser.parse_args(args)
 
     if not len(args) and not opts.list_fixes:
@@ -1713,6 +1841,25 @@ def supported_fixes():
                           getattr(instance, attribute).__doc__))
 
 
+class LineEndingWrapper(object):
+
+    r"""Replace line endings to work with sys.stdout.
+
+    It seems that sys.stdout expects only '\n' as the line ending, no matter
+    the platform. Otherwise, we get repeated line endings.
+
+    """
+
+    def __init__(self, output):
+        self.__output = output
+
+    def write(self, s):
+        self.__output.write(s.replace('\r\n', '\n').replace('\r', '\n'))
+
+    def __getattr__(self, key):
+        return getattr(self.__output, key)
+
+
 def main():
     """Tool main."""
     opts, args = parse_args(sys.argv[1:])
@@ -1730,10 +1877,11 @@ def main():
         assert not opts.recursive
         filenames = args[:1]
 
-    if sys.version_info[0] >= 3:
-        output = sys.stdout
-    else:
-        output = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
+    output = codecs.getwriter('utf-8')(sys.stdout.buffer
+                                       if sys.version_info[0] >= 3
+                                       else sys.stdout)
+
+    output = LineEndingWrapper(output)
 
     while filenames:
         name = filenames.pop(0)

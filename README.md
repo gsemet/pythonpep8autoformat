@@ -45,7 +45,10 @@ You'll find settings in Preferences menu (Preferences -> Package Settings -> Pyt
         "ignore": ["E501"],
 
         // Maximum line length
-        "max-line-length": 79
+        "max-line-length": 79,
+
+        // enable possibly unsafe changes (E711, E712)
+        "aggressive": false
     }
 
 By editing User settings, your personal liking will be kept safe over plug-in upgrades.
