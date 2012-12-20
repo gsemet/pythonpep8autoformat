@@ -1,6 +1,10 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2012.12.20-01
+  - FIX [Issue #8 Autoformat on save][issue8]. Thanks to zhenyu li
+  - Update autopep8 to version 0.8.4.
+
 ## 2012.11.24-01
  - Update autopep8 to version 0.8.3.
  - Add new setting "aggressive" (default false) to enable possibly unsafe changes (E711, E712)
@@ -95,3 +99,4 @@ Now uses a fixed autopep8 from [hhatto/fix-github-issue40][fix-github-issue40] b
 [fix-github-issue40]: https://github.com/hhatto/autopep8/issues/40
 [issue3]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/3/downloaded-and-getting-error-on-ctrl-shift
 [issue4]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/4/format-only-one-round
+[issue8]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/8/change-on_post_save-to-on_pre_save

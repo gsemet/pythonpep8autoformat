@@ -101,7 +101,7 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
 
 class Pep8AutoformatBackground(sublime_plugin.EventListener):
 
-    def on_post_save(self, view):
+    def on_pre_save(self, view):
         syntax = view.settings().get('syntax')
         if syntax.find('Python.tmLanguage') == -1:
             return

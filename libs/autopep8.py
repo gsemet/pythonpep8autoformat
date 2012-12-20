@@ -40,9 +40,16 @@ from subprocess import Popen, PIPE
 import difflib
 import tempfile
 
+# from distutils.version import StrictVersion
+# try:
+#     import pep8
+#     if StrictVersion(pep8.__version__) < StrictVersion('1.3a2'):
+#         pep8 = None
+# except ImportError:
+#     pep8 = None
 import ppapep8 as pep8
 
-__version__ = '0.8.3'
+__version__ = '0.8.4'
 
 
 PEP8_BIN = 'pep8'
@@ -50,19 +57,20 @@ CR = '\r'
 LF = '\n'
 CRLF = '\r\n'
 
+try:
+    unicode
+except NameError:
+    unicode = str
+
 
 def open_with_encoding(filename, encoding=None, mode='r'):
     """Return opened file with a specific encoding."""
     if not encoding:
         encoding = detect_encoding(filename)
 
-    try:
-        # Python 3
-        return open(filename, mode=mode, encoding=encoding,
-                    newline='')  # Preserve line endings
-    except TypeError:
-        # Python 2
-        return codecs.open(filename, mode=mode, encoding=encoding)
+    import io
+    return io.open(filename, mode=mode, encoding=encoding,
+                   newline='')  # Preserve line endings
 
 
 def detect_encoding(filename):
@@ -134,10 +142,9 @@ class FixPEP8(object):
         else:
             sio = StringIO(contents)
             self.source = sio.readlines()
-        self.original_source = copy.copy(self.source)
         self.newline = find_newline(self.source)
         self.options = options
-        self.indent_word = _get_indentword(''.join(self.source))
+        self.indent_word = _get_indentword(unicode().join(self.source))
         self.logical_start = None
         self.logical_end = None
         # method definition
@@ -237,10 +244,10 @@ class FixPEP8(object):
             print('--->  {n} issue(s) to fix {progress}'.format(
                 n=len(results), progress=progress), file=sys.stderr)
 
-        self._fix_source(filter_results(source=''.join(self.source),
+        self._fix_source(filter_results(source=unicode().join(self.source),
                                         results=results,
                                         aggressive=self.options.aggressive))
-        return ''.join(self.source)
+        return unicode().join(self.source)
 
     def fix_e101(self, _):
         """Reindent all lines."""
@@ -847,10 +854,7 @@ class FixPEP8(object):
                 UnicodeDecodeError, UnicodeEncodeError):
             return []
 
-        try:
-            original = unicode(''.join(self.source).strip(), 'utf-8')
-        except (NameError, TypeError):
-            original = ''.join(self.source).strip()
+        original = unicode().join(self.source).strip()
         if original == new_text.strip():
             return []
         else:
@@ -925,13 +929,12 @@ def _get_indentation(line):
 
 def _analyze_pep8result(result):
     tmp = result.split(':')
-    filename = tmp[0]
-    line = int(tmp[1])
-    column = int(tmp[2])
     info = ' '.join(result.split()[1:])
-    pep8id = info.lstrip().split()[0]
-    return dict(id=pep8id, filename=filename, line=line,
-                column=column, info=info)
+    return {'id': info.lstrip().split()[0],
+            'filename': tmp[0],
+            'line': int(tmp[1]),
+            'column': int(tmp[2]),
+            'info': info}
 
 
 def _get_difftext(old, new, filename):
@@ -1059,8 +1062,10 @@ def _execute_pep8(pep8_options, source):
             code = super(QuietReport, self).error(line_number, offset, text, _)
             if code:
                 self.__full_error_results.append(
-                    dict(id=code, line=line_number,
-                         column=offset + 1, info=text))
+                    {'id': code,
+                     'line': line_number,
+                     'column': offset + 1,
+                     'info': text})
 
         def full_error_results(self):
             """Return error results in detail.
@@ -1088,9 +1093,6 @@ class Reindenter(object):
     def __init__(self, input_text, newline):
         self.newline = newline
 
-        self.find_stmt = 1  # next token begins a fresh stmt?
-        self.level = 0  # current indent level
-
         # Raw file lines.
         self.raw = input_text
         self.after = None
@@ -1114,22 +1116,14 @@ class Reindenter(object):
         self.lines.insert(0, None)
         self.index = 1  # index into self.lines of next line
 
-        # List of (lineno, indentlevel) pairs, one for each stmt and
-        # comment line. indentlevel is -1 for comment lines, as a
-        # signal that tokenize doesn't know what to do about them;
-        # indeed, they're our headache!
-        self.stats = []
-
     def run(self):
         """Fix indentation and return modified line numbers.
 
         Line numbers are indexed at 1.
 
         """
-        tokens = tokenize.generate_tokens(self.getline)
         try:
-            for t in tokens:
-                self.tokeneater(*t)
+            stats = reindent_stats(tokenize.generate_tokens(self.getline))
         except (tokenize.TokenError, IndentationError):
             return set()
         # Remove trailing empty lines.
@@ -1137,7 +1131,6 @@ class Reindenter(object):
         while lines and lines[-1] == self.newline:
             lines.pop()
         # Sentinel.
-        stats = self.stats
         stats.append((len(lines), 0))
         # Map count of leading spaces to # we want.
         have2want = {}
@@ -1214,45 +1207,62 @@ class Reindenter(object):
     def getline(self):
         """Line-getter for tokenize."""
         if self.index >= len(self.lines):
-            line = ""
+            line = ''
         else:
             line = self.lines[self.index]
             self.index += 1
         return line
 
-    def tokeneater(self, token_type, _, start, __, line):
-        """Line-eater for tokenize."""
-        sline = start[0]
+
+def reindent_stats(tokens):
+    """Return list  of (lineno, indentlevel) pairs.
+
+    One for each stmt and comment line. indentlevel is -1 for comment lines, as
+    a signal that tokenize doesn't know what to do about them; indeed, they're
+    our headache!
+
+    """
+    find_stmt = 1  # next token begins a fresh stmt?
+    level = 0  # current indent level
+    stats = []
+
+    for t in tokens:
+        token_type = t[0]
+        sline = t[2][0]
+        line = t[4]
+
         if token_type == tokenize.NEWLINE:
             # A program statement, or ENDMARKER, will eventually follow,
             # after some (possibly empty) run of tokens of the form
             #     (NL | COMMENT)* (INDENT | DEDENT+)?
-            self.find_stmt = 1
+            find_stmt = 1
 
         elif token_type == tokenize.INDENT:
-            self.find_stmt = 1
-            self.level += 1
+            find_stmt = 1
+            level += 1
 
         elif token_type == tokenize.DEDENT:
-            self.find_stmt = 1
-            self.level -= 1
+            find_stmt = 1
+            level -= 1
 
         elif token_type == tokenize.COMMENT:
-            if self.find_stmt:
-                self.stats.append((sline, -1))
+            if find_stmt:
+                stats.append((sline, -1))
                 # but we're still looking for a new stmt, so leave
                 # find_stmt alone
 
         elif token_type == tokenize.NL:
             pass
 
-        elif self.find_stmt:
+        elif find_stmt:
             # This is the first "real token" following a NEWLINE, so it
             # must be the first token of the next program statement, or an
             # ENDMARKER.
-            self.find_stmt = 0
+            find_stmt = 0
             if line:   # not endmarker
-                self.stats.append((sline, self.level))
+                stats.append((sline, level))
+
+    return stats
 
 
 class Wrapper(object):
@@ -1270,8 +1280,7 @@ class Wrapper(object):
 
     def __init__(self, physical_lines):
         self.lines = physical_lines
-        self.index = 0
-        self.tokens = list()
+        self.tokens = []
         self.rel_indent = None
         sio = StringIO(''.join(physical_lines))
         for t in tokenize.generate_tokens(sio.readline):
@@ -1435,29 +1444,10 @@ class Wrapper(object):
                 hang = rel_indent[row] - rel_indent[open_row]
 
                 if token_type == tokenize.OP and text in ']})':
-                    if indent[depth]:
-                        if start[1] != indent[depth]:
-                            pass  # E124
-                    elif hang:
-                        pass  # E123
+                    pass
                 elif visual_indent is True:
                     if not indent[depth]:
                         indent[depth] = start[1]
-                elif visual_indent in (text, str):
-                    pass
-                elif indent[depth] and start[1] < indent[depth]:
-                    pass  # E128
-                elif hang == 4 or (indent_next and rel_indent[row] == 8):
-                    pass
-                else:
-                    if hang <= 0:
-                        pass  # E122
-                    elif indent[depth]:
-                        pass  # E127
-                    elif hang % 4:
-                        pass  # E121
-                    else:
-                        pass  # E126
 
             # line altered: comments shouldn't define a visual indent
             if parens[row] and not indent[depth] and token_type not in (
@@ -1496,9 +1486,6 @@ class Wrapper(object):
 
             last_token_multiline = (start[0] != end[0])
 
-        if indent_next and rel_indent[-1] == 4:
-            pass  # E125
-
         return valid_indents
 
 
@@ -1521,10 +1508,7 @@ def refactor_with_2to3(source_text, fixer_name):
     tool = refactor.RefactoringTool(
         fixer_names=fixers,
         explicit=fixers)
-    try:
-        return unicode(tool.refactor_string(source_text, name=''))
-    except NameError:
-        return str(tool.refactor_string(source_text, name=''))
+    return unicode(tool.refactor_string(source_text, name=''))
 
 
 def break_multi_line(source_text, newline, indent_word, max_line_length):
@@ -1677,7 +1661,8 @@ def format_block_comments(source):
         # Optimization.
         return source
 
-    string_line_numbers = multiline_string_lines(source)
+    string_line_numbers = multiline_string_lines(source,
+                                                 include_docstrings=True)
     fixed_lines = []
     sio = StringIO(source)
     for (line_number, line) in enumerate(sio.readlines(), start=1):
@@ -1702,13 +1687,31 @@ def normalize_line_endings(lines):
     return [line.rstrip('\n\r') + newline for line in lines]
 
 
+def mutual_startswith(a, b):
+    return b.startswith(a) or a.startswith(b)
+
+
+def code_match(code, select, ignore):
+    if ignore:
+        for ignored_code in [c.strip() for c in ignore.split(',')]:
+            if mutual_startswith(code.lower(), ignored_code.lower()):
+                return False
+
+    if select:
+        for selected_code in [c.strip() for c in select.split(',')]:
+            if mutual_startswith(code.lower(), selected_code.lower()):
+                return True
+
+    return True
+
+
 def fix_file(filename, opts=None, output=None):
     if not opts:
         opts = parse_args([filename])[0]
 
     original_source = read_from_filename(filename, readlines=True)
 
-    tmp_source = ''.join(normalize_line_endings(original_source))
+    tmp_source = unicode().join(normalize_line_endings(original_source))
 
     fix = FixPEP8(filename, opts, contents=tmp_source)
     fixed_source = fix.fix()
@@ -1716,7 +1719,8 @@ def fix_file(filename, opts=None, output=None):
     if not pep8 or opts.in_place:
         encoding = detect_encoding(filename)
 
-    fixed_source = format_block_comments(fixed_source)
+    if code_match('e26', select=opts.select, ignore=opts.ignore):
+        fixed_source = format_block_comments(fixed_source)
 
     interruption = None
     try:
@@ -1732,7 +1736,8 @@ def fix_file(filename, opts=None, output=None):
             tmp_source = copy.copy(fixed_source)
 
             if not pep8:
-                tmp_filename = tempfile.mkstemp()[1]
+                (_tmp_open_file, tmp_filename) = tempfile.mkstemp()
+                os.close(_tmp_open_file)
                 fp = open_with_encoding(tmp_filename,
                                         encoding=encoding, mode='w')
                 fp.write(fixed_source)
