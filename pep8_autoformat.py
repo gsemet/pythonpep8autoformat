@@ -14,12 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
 import sys
 import os
 import sublime
 import sublime_plugin
-import MergeUtils
 
 PLUGIN_NAME = "Python PEP8 Autoformat"
 settings = sublime.load_settings('pep8_autoformat.sublime-settings')
@@ -36,8 +34,10 @@ if libs_path not in sys.path:
 
 try:
     import autopep8
+    import MergeUtils
 except:
-    sublime.error_message('Cannot import pep8 or autopep8!\n{0}'.format(sys.exc_info[1]))
+    sublime.error_message(
+        '{0}: import error: {1}'.format(PLUGIN_NAME, sys.exc_info[1]))
     raise
 
 
@@ -49,13 +49,13 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         sel = self.view.sel()
 
         if len(sel) > 1:
-            sublime.error_message(
-                'Python PEP8 Autoformat cannot work with multi selection')
+            sublime.error_message('Python PEP8 Autoformat cannot work with multi selection')
             return
         elif len(sel) == 1:
             region = sel[0]
             if region.empty():  # Get all document
-                replace_region = self.view.line(sublime.Region(0L, self.view.size()))
+                replace_region = self.view.line(
+                    sublime.Region(0L, self.view.size()))
             else:
                 replace_region = self.view.line(sel[0])
 
@@ -67,34 +67,24 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
                 return
 
             source = self.view.substr(replace_region)
-            original = copy.copy(source)
         else:
             return
 
-        #-- Autoformat
-        class options(object):
-            def __init__(self):
-                self.ignore = IGNORE
-                self.select = SELECT
-                self.verbose = False
-                self.max_line_length = MAX_LINE_LENGTH
-                self.aggressive = AGGRESSIVE
+        options = autopep8.parse_args([''])[0]
+        if IGNORE:
+            options.ignore = IGNORE
+        if SELECT:
+            options.select = SELECT
+        if MAX_LINE_LENGTH:
+            options.max_line_length = MAX_LINE_LENGTH
+        if AGGRESSIVE:
+            options.aggressive = True
 
-        refix = True
-        while refix:
-            fix = autopep8.FixPEP8(None, options(), contents=source)
-            fixed = fix.fix()  # -- does not alway return Unicode string !
-            #-- seems no more necessary with autopep8 commit 524505845cf72c2b5a072e7f2fdc7a0824ada12a
-            if isinstance(fixed, str):
-                fixed = fixed.decode('utf-8')
-            if fixed == source:
-                refix = False
-            else:
-                source = copy.copy(fixed)
-
-        is_dirty, err = MergeUtils.merge_code(self.view, edit, original, source)
+        fixed = autopep8.fix_string(source, options=options)
+        is_dirty, err = MergeUtils.merge_code(self.view, edit, source, fixed)
         if err:
-            sublime.error_message("%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
+            sublime.error_message(
+                "%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
 
 
 class Pep8AutoformatBackground(sublime_plugin.EventListener):

@@ -1,6 +1,9 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2013.01.26-02
+  - Using the module API exposed by autopep8.
+
 ## 2013.01.26-01
   - FIX [Issue #7 View jumping in Sublime][issue7]. Thanks to Timon Wong
   - Update autopep8 to version 0.8.5.
