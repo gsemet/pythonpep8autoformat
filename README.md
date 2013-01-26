@@ -41,11 +41,11 @@ You'll find settings in Preferences menu (Preferences -> Package Settings -> Pyt
         // select errors / warnings(e.g. ["E4", "W"])
         "select": [],
 
-        // do not fix these errors / warnings(e.g. ["E4", "W"])
-        "ignore": ["E501"],
+        // do not fix these errors / warnings(e.g. ["E501", E4", "W"])
+        "ignore": [],
 
         // Maximum line length
-        "max-line-length": 79,
+        "max-line-length": 128,
 
         // enable possibly unsafe changes (E711, E712)
         "aggressive": false
