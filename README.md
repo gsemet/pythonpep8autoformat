@@ -83,7 +83,7 @@ Useful companions to Python PEP8 Autoformat:
 
 ## License
 
-Copyright 2012 Stéphane Bunel
+Copyright 2012-2013 Stéphane Bunel
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

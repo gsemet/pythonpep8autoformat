@@ -22,6 +22,7 @@
 """Automatically formats Python code to conform to the PEP 8 style guide."""
 
 from __future__ import print_function
+from __future__ import division
 
 import copy
 import os
@@ -43,13 +44,17 @@ import tempfile
 # from distutils.version import StrictVersion
 # try:
 #     import pep8
-#     if StrictVersion(pep8.__version__) < StrictVersion('1.3a2'):
-#         pep8 = None
+#     try:
+#         if StrictVersion(pep8.__version__) < StrictVersion('1.3a2'):
+#             pep8 = None
+#     except ValueError:
+#         # Ignore non-standard version tags.
+#         pass
 # except ImportError:
 #     pep8 = None
 import ppapep8 as pep8
 
-__version__ = '0.8.4'
+__version__ = '0.8.5'
 
 
 PEP8_BIN = 'pep8'
@@ -156,12 +161,14 @@ class FixPEP8(object):
         self.fix_e221 = self.fix_e271
         self.fix_e222 = self.fix_e271
         self.fix_e223 = self.fix_e271
+        self.fix_e226 = self.fix_e225
         self.fix_e241 = self.fix_e271
         self.fix_e242 = self.fix_e224
         self.fix_e261 = self.fix_e262
         self.fix_e272 = self.fix_e271
         self.fix_e273 = self.fix_e271
         self.fix_e274 = self.fix_e271
+        self.fix_e703 = self.fix_e702
         self.fix_w191 = self.fix_e101
 
     def _fix_source(self, results):
@@ -222,6 +229,14 @@ class FixPEP8(object):
             }
             results = _execute_pep8(pep8_options, self.source)
         else:
+            encoding = detect_encoding(self.filename)
+
+            (_tmp_open_file, tmp_filename) = tempfile.mkstemp()
+            os.close(_tmp_open_file)
+            fp = open_with_encoding(tmp_filename, encoding=encoding, mode='w')
+            fp.write(unicode().join(self.source))
+            fp.close()
+
             if self.options.verbose:
                 print('Running in compatibility mode. Consider '
                       'upgrading to the latest pep8.',
@@ -233,7 +248,9 @@ class FixPEP8(object):
                                   (['--max-line-length={length}'.format(
                                       length=self.options.max_line_length)]
                                    if self.options.max_line_length else []) +
-                                  [self.filename])
+                                  [tmp_filename])
+            if not pep8:
+                os.remove(tmp_filename)
 
         if self.options.verbose:
             progress = {}
@@ -636,7 +653,8 @@ class FixPEP8(object):
         if ';' in target:
             return []
 
-        indentation = target.split('import ')[0]
+        indentation = re.split(pattern=r'\bimport\b',
+                               string=target, maxsplit=1)[0]
         fixed = (target[:offset].rstrip('\t ,') + self.newline +
                  indentation + 'import ' + target[offset:].lstrip('\t ,'))
         self.source[line_index] = fixed
@@ -691,25 +709,24 @@ class FixPEP8(object):
         # over
         # my_long_function_name(x, y,
         #     z, ...)
-        candidate0 = _shorten_line(
-            tokens, source, target, indent,
-            self.indent_word, newline=self.newline,
-            max_line_length=self.options.max_line_length,
-            reverse=False)
-        candidate1 = _shorten_line(
-            tokens, source, target, indent,
-            self.indent_word, newline=self.newline,
-            max_line_length=self.options.max_line_length,
-            reverse=True)
-        if candidate0 and candidate1:
-            if candidate0.split(self.newline)[0].endswith('('):
-                self.source[line_index] = candidate0
+        candidates = [None, None]
+        for candidate_index, reverse in enumerate([False, True]):
+            candidates[candidate_index] = shorten_line(
+                tokens, source, target, indent,
+                self.indent_word, newline=self.newline,
+                max_line_length=self.options.max_line_length,
+                reverse=reverse,
+                aggressive=self.options.aggressive)
+
+        if candidates[0] and candidates[1]:
+            if candidates[0].split(self.newline)[0].endswith('('):
+                self.source[line_index] = candidates[0]
             else:
-                self.source[line_index] = candidate1
-        elif candidate0:
-            self.source[line_index] = candidate0
-        elif candidate1:
-            self.source[line_index] = candidate1
+                self.source[line_index] = candidates[1]
+        elif candidates[0]:
+            self.source[line_index] = candidates[0]
+        elif candidates[1]:
+            self.source[line_index] = candidates[1]
         else:
             # Otherwise both don't work
             return []
@@ -967,12 +984,54 @@ def _priority_key(pep8_result):
         return len(priority)
 
 
+def shorten_line(tokens, source, target, indentation, indent_word, newline,
+                 max_line_length, reverse=False, aggressive=False):
+    """Separate line at OPERATOR."""
+    actual_length = len(indentation) + len(source)
+
+    delta = (actual_length - max_line_length) // 3
+    assert delta >= 0
+
+    if not delta:
+        delta = 1
+
+    shortened = None
+    length = None
+    for length in range(max_line_length, actual_length, delta):
+        shortened = _shorten_line(
+            tokens=tokens,
+            source=source,
+            target=target,
+            indentation=indentation,
+            indent_word=indent_word,
+            newline=newline,
+            max_line_length=length,
+            reverse=reverse,
+            aggressive=aggressive)
+
+        if shortened is not None:
+            break
+
+    if aggressive and (length is None or length > max_line_length):
+        commas_shortened = _shorten_line_at_commas(
+            tokens=tokens,
+            source=source,
+            indentation=indentation,
+            indent_word=indent_word,
+            newline=newline)
+
+        if commas_shortened is not None and commas_shortened != source:
+            shortened = commas_shortened
+
+    return shortened
+
+
 def _shorten_line(tokens, source, target, indentation, indent_word, newline,
-                  max_line_length, reverse=False):
+                  max_line_length, reverse=False, aggressive=False):
     """Separate line at OPERATOR."""
     max_line_length_minus_indentation = max_line_length - len(indentation)
     if reverse:
-        tokens.reverse()
+        tokens = reversed(tokens)
     for tkn in tokens:
         # Don't break on '=' after keyword as this violates PEP 8.
         if token.OP == tkn[0] and tkn[1] != '=':
@@ -1018,9 +1077,53 @@ def _shorten_line(tokens, source, target, indentation, indent_word, newline,
                 fixed = first + newline + second
 
             # Only fix if syntax is okay.
-            if check_syntax(fixed):
+            if check_syntax(normalize_multiline(fixed)
+                            if aggressive else fixed):
                 return indentation + fixed
     return None
+
+
+def _shorten_line_at_commas(tokens, source, indentation, indent_word, newline):
+    """Separate line by breaking at commas."""
+    if ',' not in source:
+        return None
+
+    fixed = ''
+    for tkn in tokens:
+        token_type = tkn[0]
+        token_string = tkn[1]
+
+        if token_string == '.':
+            fixed = fixed.rstrip()
+
+        fixed += token_string
+
+        if token_type == token.OP and token_string == ',':
+            fixed += newline + indent_word
+        elif token_type not in (token.NEWLINE, token.ENDMARKER):
+            if token_string != '.':
+                fixed += ' '
+
+    if check_syntax(fixed):
+        return indentation + fixed
+    else:
+        return None
+
+
+def normalize_multiline(line):
+    """Remove multiline-related code that will cause syntax error.
+
+    This is for purposes of checking syntax.
+
+    """
+    for quote in '\'"':
+        dict_pattern = r'^{q}[^{q}]*{q}\s*:\s*'.format(q=quote)
+        if re.match(dict_pattern, line):
+            if not line.strip().endswith('}'):
+                line += '}'
+            return '{' + line
+
+    return line
 
 
 def fix_whitespace(line, offset, replacement):
@@ -1036,15 +1139,9 @@ def fix_whitespace(line, offset, replacement):
 
 def _spawn_pep8(pep8_options):
     """Execute pep8 via subprocess.Popen."""
-    for path in os.environ['PATH'].split(':'):
-        if os.path.exists(os.path.join(path, PEP8_BIN)):
-            cmd = ([os.path.join(path, PEP8_BIN)] +
-                   pep8_options)
-            p = Popen(cmd, stdout=PIPE)
-            output = p.communicate()[0].decode('utf-8')
-            return [_analyze_pep8result(l)
-                    for l in output.splitlines()]
-    raise Exception("'%s' is not found." % PEP8_BIN)
+    p = Popen([PEP8_BIN] + pep8_options, stdout=PIPE)
+    output = p.communicate()[0].decode('utf-8')
+    return [_analyze_pep8result(l) for l in output.splitlines()]
 
 
 def _execute_pep8(pep8_options, source):
@@ -1519,7 +1616,10 @@ def break_multi_line(source_text, newline, indent_word, max_line_length):
     """
     # Handle special case only.
     for symbol in '([{':
-        if (symbol in source_text and source_text.rstrip().endswith(',')):
+        # Only valid if symbol is not on a line by itself.
+        if (symbol in source_text
+                and source_text.rstrip().endswith(',')
+                and not source_text.lstrip().startswith(symbol)):
             index = 1 + source_text.find(symbol)
             if index >= max_line_length:
                 return None
@@ -1585,11 +1685,6 @@ def filter_results(source, results, aggressive=False):
             continue
 
         if issue_id in ['e711', 'e712'] and not aggressive:
-            continue
-
-        # pep8 should not complain about SQLAlchemy queries. SQLAlchemy
-        # overrides the equality operators.
-        if issue_id == 'e711' and 'filter' in split_source[r['line']]:
             continue
 
         yield r
@@ -1701,58 +1796,64 @@ def code_match(code, select, ignore):
         for selected_code in [c.strip() for c in select.split(',')]:
             if mutual_startswith(code.lower(), selected_code.lower()):
                 return True
+        return False
 
     return True
 
 
-def fix_file(filename, opts=None, output=None):
-    if not opts:
-        opts = parse_args([filename])[0]
+def fix_string(source, options=None):
+    """Return fixed source code."""
+    if not options:
+        options = parse_args([''])[0]
+
+    sio = StringIO(source)
+    return fix_lines(sio.readlines(), options=options)
+
+
+def fix_lines(source_lines, options, filename=''):
+    """Return fixed source code."""
+    tmp_source = unicode().join(normalize_line_endings(source_lines))
+
+    # Keep a history to break out of cycles.
+    previous_hashes = set([hash(tmp_source)])
+
+    fixed_source = tmp_source
+    if code_match('e26', select=options.select, ignore=options.ignore):
+        fixed_source = format_block_comments(fixed_source)
+
+    for _ in range(-1, options.pep8_passes):
+        tmp_source = copy.copy(fixed_source)
+
+        fix = FixPEP8(filename, options, contents=tmp_source)
+        fixed_source = fix.fix()
+
+        if hash(fixed_source) in previous_hashes:
+            break
+        else:
+            previous_hashes.add(hash(fixed_source))
+
+    return fixed_source
+
+
+def fix_file(filename, options=None, output=None):
+    if not options:
+        options = parse_args([filename])[0]
 
     original_source = read_from_filename(filename, readlines=True)
 
-    tmp_source = unicode().join(normalize_line_endings(original_source))
+    fixed_source = original_source
 
-    fix = FixPEP8(filename, opts, contents=tmp_source)
-    fixed_source = fix.fix()
-    tmp_filename = filename
-    if not pep8 or opts.in_place:
+    if options.in_place:
         encoding = detect_encoding(filename)
-
-    if code_match('e26', select=opts.select, ignore=opts.ignore):
-        fixed_source = format_block_comments(fixed_source)
 
     interruption = None
     try:
-        # Keep a history to break out of cycles.
-        previous_hashes = set([hash(tmp_source)])
-
-        for _ in range(opts.pep8_passes):
-            if hash(fixed_source) in previous_hashes:
-                break
-            else:
-                previous_hashes.add(hash(fixed_source))
-
-            tmp_source = copy.copy(fixed_source)
-
-            if not pep8:
-                (_tmp_open_file, tmp_filename) = tempfile.mkstemp()
-                os.close(_tmp_open_file)
-                fp = open_with_encoding(tmp_filename,
-                                        encoding=encoding, mode='w')
-                fp.write(fixed_source)
-                fp.close()
-            fix = FixPEP8(tmp_filename, opts, contents=tmp_source)
-            fixed_source = fix.fix()
-            if not pep8:
-                os.remove(tmp_filename)
+        fixed_source = fix_lines(fixed_source, options, filename=filename)
     except KeyboardInterrupt as exception:
         # Allow stopping early.
         interruption = exception
-    del tmp_filename
-    del tmp_source
 
-    if opts.diff:
+    if options.diff:
         new = StringIO(fixed_source)
         new = new.readlines()
         diff = _get_difftext(original_source, new, filename)
@@ -1760,7 +1861,7 @@ def fix_file(filename, opts=None, output=None):
             output.write(diff)
         else:
             return output
-    elif opts.in_place:
+    elif options.in_place:
         fp = open_with_encoding(filename, encoding=encoding,
                                 mode='w')
         fp.write(fixed_source)
@@ -1778,7 +1879,8 @@ def fix_file(filename, opts=None, output=None):
 def parse_args(args):
     """Parse command-line options."""
     parser = OptionParser(usage='Usage: autopep8 [options] '
-                                '[filename [filename ...]]',
+                                '[filename [filename ...]]'
+                                '\nUse filename \'-\'  for stdin.',
                           version='autopep8: %s' % __version__,
                           description=__doc__,
                           prog='autopep8')
@@ -1809,26 +1911,33 @@ def parse_args(args):
                            '(default: %default)')
     parser.add_option('--aggressive', action='store_true',
                       help='enable possibly unsafe changes (E711, E712)')
-    opts, args = parser.parse_args(args)
+    options, args = parser.parse_args(args)
 
-    if not len(args) and not opts.list_fixes:
+    if not len(args) and not options.list_fixes:
         parser.error('incorrect number of arguments')
 
-    if len(args) > 1 and not (opts.in_place or opts.diff):
+    if '-' in args and len(args) > 1:
+        parser.error('cannot mix stdin and regular files')
+
+    if len(args) > 1 and not (options.in_place or options.diff):
         parser.error('autopep8 only takes one filename as argument '
                      'unless the "--in-place" or "--diff" options are '
                      'used')
 
-    if opts.recursive and not (opts.in_place or opts.diff):
+    if options.recursive and not (options.in_place or options.diff):
         parser.error('--recursive must be used with --in-place or --diff')
 
-    if opts.in_place and opts.diff:
+    if options.in_place and options.diff:
         parser.error('--in-place and --diff are mutually exclusive')
 
-    if opts.max_line_length < 8:
+    if options.max_line_length < 8:
         parser.error('--max-line-length must greater than 8')
 
-    return opts, args
+    if args == ['-'] and (options.in_place or options.recursive):
+        parser.error('--in-place or --recursive cannot be used with '
+                     'standard input')
+
+    return options, args
 
 
 def supported_fixes():
@@ -1865,32 +1974,23 @@ class LineEndingWrapper(object):
         return getattr(self.__output, key)
 
 
-def main():
-    """Tool main."""
-    opts, args = parse_args(sys.argv[1:])
+def temporary_file():
+    """Return temporary file."""
+    try:
+        return tempfile.NamedTemporaryFile(mode='w', encoding='utf-8')
+    except TypeError:
+        return tempfile.NamedTemporaryFile(mode='w')
 
-    if opts.list_fixes:
-        for code, description in supported_fixes():
-            print('{code} - {description}'.format(
-                code=code, description=description))
-        return 0
 
-    if opts.in_place or opts.diff:
-        filenames = list(set(args))
-    else:
-        assert len(args) == 1
-        assert not opts.recursive
-        filenames = args[:1]
+def fix_multiple_files(filenames, options=None, output=None):
+    """Fix list of files.
 
-    output = codecs.getwriter('utf-8')(sys.stdout.buffer
-                                       if sys.version_info[0] >= 3
-                                       else sys.stdout)
+    Optionally fix files recursively.
 
-    output = LineEndingWrapper(output)
-
+    """
     while filenames:
         name = filenames.pop(0)
-        if opts.recursive and os.path.isdir(name):
+        if options.recursive and os.path.isdir(name):
             for root, directories, children in os.walk(name):
                 filenames += [os.path.join(root, f) for f in children
                               if f.endswith('.py') and
@@ -1899,12 +1999,45 @@ def main():
                     if d.startswith('.'):
                         directories.remove(d)
         else:
-            if opts.verbose:
+            if options.verbose:
                 print('[file:%s]' % name, file=sys.stderr)
             try:
-                fix_file(name, opts, output)
+                fix_file(name, options, output)
             except IOError as error:
                 print(str(error), file=sys.stderr)
+
+
+def main():
+    """Tool main."""
+    options, args = parse_args(sys.argv[1:])
+
+    if options.list_fixes:
+        for code, description in supported_fixes():
+            print('{code} - {description}'.format(
+                code=code, description=description))
+        return 0
+
+    if options.in_place or options.diff:
+        filenames = list(set(args))
+    else:
+        assert len(args) == 1
+        assert not options.recursive
+        if args == ['-']:
+            assert not options.in_place
+            temp = temporary_file()
+            temp.write(sys.stdin.read())
+            temp.flush()
+            filenames = [temp.name]
+        else:
+            filenames = args[:1]
+
+    output = codecs.getwriter('utf-8')(sys.stdout.buffer
+                                       if sys.version_info[0] >= 3
+                                       else sys.stdout)
+
+    output = LineEndingWrapper(output)
+
+    fix_multiple_files(filenames, options, output)
 
 
 if __name__ == '__main__':

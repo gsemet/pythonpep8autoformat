@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2012 Stéphane Bunel
+# Copyright 2012-2013 Stéphane Bunel
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@ import sys
 import os
 import sublime
 import sublime_plugin
+import MergeUtils
 
+PLUGIN_NAME = "Python PEP8 Autoformat"
 settings = sublime.load_settings('pep8_autoformat.sublime-settings')
 IGNORE = ','.join(settings.get('ignore', []))
 SELECT = ','.join(settings.get('select', []))
@@ -44,7 +46,6 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         source = ''
         replace_region = None
-        pos = None
         sel = self.view.sel()
 
         if len(sel) > 1:
@@ -54,7 +55,6 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         elif len(sel) == 1:
             region = sel[0]
             if region.empty():  # Get all document
-                pos = region.begin()
                 replace_region = self.view.line(sublime.Region(0L, self.view.size()))
             else:
                 replace_region = self.view.line(sel[0])
@@ -67,6 +67,7 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
                 return
 
             source = self.view.substr(replace_region)
+            original = copy.copy(source)
         else:
             return
 
@@ -91,12 +92,9 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
             else:
                 source = copy.copy(fixed)
 
-        self.view.replace(edit, replace_region, source)
-
-        if pos:
-            self.view.sel().clear()
-            self.view.sel().add(pos)
-            self.view.show_at_center(pos)
+        is_dirty, err = MergeUtils.merge_code(self.view, edit, original, source)
+        if err:
+            sublime.error_message("%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
 
 
 class Pep8AutoformatBackground(sublime_plugin.EventListener):
