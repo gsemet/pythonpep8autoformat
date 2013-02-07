@@ -55,8 +55,7 @@ By editing User settings, your personal liking will be kept safe over plug-in up
 
 ## Usage
 
-Formatting is applied on the whole document if there is no selection and operate only if the document
-is in Python syntax mode (default for all .py files).
+Formatting is applied on the whole document.
 
 ### Using keyboard:
 

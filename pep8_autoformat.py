@@ -44,32 +44,8 @@ except:
 class Pep8AutoformatCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        source = ''
-        replace_region = None
-        sel = self.view.sel()
-
-        if len(sel) > 1:
-            sublime.error_message('Python PEP8 Autoformat cannot work with multi selection')
-            return
-        elif len(sel) == 1:
-            region = sel[0]
-            if region.empty():  # Get all document
-                replace_region = self.view.line(
-                    sublime.Region(0L, self.view.size()))
-            else:
-                replace_region = self.view.line(sel[0])
-
-            scope = self.view.syntax_name(replace_region.end())
-            if scope.find('source.python') == -1:
-                sublime.error_message(
-                    'Python PEP8 Autoformat apply only on Python code.\n'
-                    'Current scope is: \"{0}\"'.format(scope))
-                return
-
-            source = self.view.substr(replace_region)
-        else:
-            return
-
+        replace_region = self.view.line(sublime.Region(0L, self.view.size()))
+        source = self.view.substr(replace_region)
         options = autopep8.parse_args([''])[0]
         if IGNORE:
             options.ignore = IGNORE
@@ -83,8 +59,7 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         fixed = autopep8.fix_string(source, options=options)
         is_dirty, err = MergeUtils.merge_code(self.view, edit, source, fixed)
         if err:
-            sublime.error_message(
-                "%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
+            sublime.error_message("%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
 
 
 class Pep8AutoformatBackground(sublime_plugin.EventListener):
