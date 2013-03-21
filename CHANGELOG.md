@@ -1,6 +1,12 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2013.03.22-01
+  - Upgrade pep8 to version 1.4.6a0
+  - Upgrade autopep8 to version 0.8.7
+  - Prepare plug-in for ST3 (Sublim text 3). Thanks to Sergey Trupp
+  - FIX Syntax error on sys.exc_info()
+
 ## 2013.02.07-01
   - Quick and Dirty FIX to [multiline-selection-on-saving-formatting][issue9]: reformating on block selection is now disabled.
   Let me know if this feature was useful by opening a request to reintroduce it.

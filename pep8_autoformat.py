@@ -19,8 +19,7 @@ import os
 import sublime
 import sublime_plugin
 
-ST_VERSION = 3000 if sublime.version(
-) == '' else int(sublime.version())
+ST_VERSION = 3000 if sublime.version() == '' else int(sublime.version())
 PLUGIN_NAME = "Python PEP8 Autoformat"
 SETTINGS_FILE = 'pep8_autoformat.sublime-settings'
 
