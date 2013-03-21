@@ -37,7 +37,7 @@ try:
     import MergeUtils
 except:
     sublime.error_message(
-        '{0}: import error: {1}'.format(PLUGIN_NAME, sys.exc_info[1]))
+        '{0}: import error: {1}'.format(PLUGIN_NAME, sys.exc_info()[1]))
     raise
 
 
