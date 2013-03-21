@@ -19,13 +19,12 @@ import os
 import sublime
 import sublime_plugin
 
+ST_VERSION = 3000 if sublime.version(
+) == '' else int(sublime.version())
 PLUGIN_NAME = "Python PEP8 Autoformat"
-settings = sublime.load_settings('pep8_autoformat.sublime-settings')
-IGNORE = ','.join(settings.get('ignore', []))
-SELECT = ','.join(settings.get('select', []))
-MAX_LINE_LENGTH = settings.get('max-line-length', 79)
-AGGRESSIVE = settings.get('aggressive', False)
+SETTINGS_FILE = 'pep8_autoformat.sublime-settings'
 
+settings = sublime.load_settings(SETTINGS_FILE)
 pkg_path = os.path.abspath(os.path.dirname(__file__))
 libs_path = os.path.join(pkg_path, 'libs')
 if libs_path not in sys.path:
@@ -41,25 +40,36 @@ except:
     raise
 
 
+class PythonPEP8Autoformat(object):
+
+    def __init__(self):
+        self.settings = sublime.load_settings(SETTINGS_FILE)
+
+    def get_options(self):
+        options = autopep8.parse_args([''])[0]
+        options.max_line_length = self.settings.get(
+            'max-line-length', 79)
+        options.aggressive = self.settings.get('aggressive', False)
+        if self.settings.get('ignore', []):
+            options.ignore = ','.join(self.settings.get('ignore', []))
+        if self.settings.get('select', []):
+            options.select = ','.join(self.settings.get('select', []))
+
+        return options
+
+
 class Pep8AutoformatCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        replace_region = self.view.line(sublime.Region(0L, self.view.size()))
+        replace_region = self.view.line(
+            sublime.Region(0L, self.view.size()))
         source = self.view.substr(replace_region)
-        options = autopep8.parse_args([''])[0]
-        if IGNORE:
-            options.ignore = IGNORE
-        if SELECT:
-            options.select = SELECT
-        if MAX_LINE_LENGTH:
-            options.max_line_length = MAX_LINE_LENGTH
-        if AGGRESSIVE:
-            options.aggressive = True
-
-        fixed = autopep8.fix_string(source, options=options)
-        is_dirty, err = MergeUtils.merge_code(self.view, edit, source, fixed)
+        fixed = autopep8.fix_string(source, options=PPA.get_options())
+        is_dirty, err = MergeUtils.merge_code(
+            self.view, edit, source, fixed)
         if err:
-            sublime.error_message("%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
+            sublime.error_message(
+                "%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
 
 
 class Pep8AutoformatBackground(sublime_plugin.EventListener):
@@ -70,5 +80,15 @@ class Pep8AutoformatBackground(sublime_plugin.EventListener):
             return
 
         # do autoformat on file save if allowed in settings
-        if settings.get('autoformat_on_save', False):
+        if PPA.settings.get('autoformat_on_save', False):
             view.run_command('pep8_autoformat')
+
+
+# In ST3 this will get called automatically once the full API becomes available.
+def plugin_loaded():
+    global PPA
+    PPA = PythonPEP8Autoformat()
+
+if ST_VERSION < 3000:
+    global PPA
+    PPA = PythonPEP8Autoformat()
