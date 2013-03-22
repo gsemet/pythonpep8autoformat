@@ -60,6 +60,9 @@ class PythonPEP8Autoformat(object):
 class Pep8AutoformatCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
+        syntax = self.view.settings().get('syntax')
+        if syntax.find('Python.tmLanguage') == -1:
+            return
         replace_region = self.view.line(
             sublime.Region(0L, self.view.size()))
         source = self.view.substr(replace_region)

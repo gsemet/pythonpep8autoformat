@@ -2,13 +2,14 @@
 Python PEP8 Autoformat
 
 ## 2013.03.22-01
+  - FIX Check syntax mode before trying to reformat
   - Upgrade pep8 to version 1.4.6a0
   - Upgrade autopep8 to version 0.8.7
-  - Prepare plug-in for ST3 (Sublim text 3). Thanks to Sergey Trupp
+  - Prepare plug-in for ST3 (Sublime Text 3). Thanks to Sergey Trupp
   - FIX Syntax error on sys.exc_info()
 
 ## 2013.02.07-01
-  - Quick and Dirty FIX to [multiline-selection-on-saving-formatting][issue9]: reformating on block selection is now disabled.
+  - Quick and Dirty FIX to [multiline-selection-on-saving-formatting][issue9]: reformatting on block selection is now disabled.
   Let me know if this feature was useful by opening a request to reintroduce it.
 
 ## 2013.01.26-02
@@ -37,7 +38,7 @@ Python PEP8 Autoformat
 - FIX: [Issue #4][issue4] (format only one round).
 - Upgrade shipped autopep8.
 - Remove "command" and "show_command" settings since pep8 and autopep8 are bundled with plug-in
-- autopep8: Some strange behavior persists when code contains non-ascii characters.
+- autopep8: Some strange behavior persists when code contains non-ASCII characters.
   Ex: [Fixing W601][fix-github-issue40] silently fails if source code contains non-ascii.
 
 ## 2012.09.29-1
