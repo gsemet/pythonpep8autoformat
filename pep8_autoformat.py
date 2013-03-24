@@ -19,16 +19,17 @@ import os
 import sublime
 import sublime_plugin
 
+PPA_PATH = list()
+PYMAMI = '{0}{1}'.format(*sys.version_info[:2])
 ST_VERSION = 3000 if sublime.version() == '' else int(sublime.version())
 PLUGIN_NAME = "Python PEP8 Autoformat"
 SETTINGS_FILE = 'pep8_autoformat.sublime-settings'
 
-settings = sublime.load_settings(SETTINGS_FILE)
 pkg_path = os.path.abspath(os.path.dirname(__file__))
-libs_path = os.path.join(pkg_path, 'libs')
-if libs_path not in sys.path:
-    sys.path.insert(0, libs_path)
-(sys.path.insert(0, p) for p in settings.get('libs_path', []) if p not in sys.path)
+PPA_PATH.append(os.path.join(pkg_path, 'libs'))
+if PYMAMI != '26':
+    PPA_PATH.append(os.path.join(pkg_path, 'libs', 'py' + PYMAMI))
+[sys.path.insert(0, p) for p in PPA_PATH if p not in sys.path]
 
 try:
     import autopep8
@@ -72,6 +73,7 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         if err:
             sublime.error_message(
                 "%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
+            raise
 
 
 class Pep8AutoformatBackground(sublime_plugin.EventListener):
@@ -86,14 +88,12 @@ class Pep8AutoformatBackground(sublime_plugin.EventListener):
             view.run_command('pep8_autoformat')
 
 
-# In ST3 this will get called automatically once the full API becomes available.
+# In ST3 this will get called automatically once
+# the full API becomes available.
 def plugin_loaded():
     global PPA
     PPA = PythonPEP8Autoformat()
-    print("Python version = ", sys.version_info)
 
 if ST_VERSION < 3000:
     global PPA
     PPA = PythonPEP8Autoformat()
-
-print("ST_VERSION = ", ST_VERSION)
