@@ -64,7 +64,7 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         if syntax.find('Python.tmLanguage') == -1:
             return
         replace_region = self.view.line(
-            sublime.Region(0L, self.view.size()))
+            sublime.Region(0, self.view.size()))
         source = self.view.substr(replace_region)
         fixed = autopep8.fix_string(source, options=PPA.get_options())
         is_dirty, err = MergeUtils.merge_code(
@@ -90,7 +90,10 @@ class Pep8AutoformatBackground(sublime_plugin.EventListener):
 def plugin_loaded():
     global PPA
     PPA = PythonPEP8Autoformat()
+    print("Python version = ", sys.version_info)
 
 if ST_VERSION < 3000:
     global PPA
     PPA = PythonPEP8Autoformat()
+
+print("ST_VERSION = ", ST_VERSION)

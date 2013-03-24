@@ -1,2 +1,9 @@
 syntax: glob
 *.pyc
+*.sublime-project
+*.sublime-workspace
+.hgignore
+NOTES.txt
+libs/lib2to3/Grammar2.6.6.final.0.pickle
+libs/lib2to3/PatternGrammar2.6.6.final.0.pickle
+libs/test.py
