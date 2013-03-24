@@ -1,6 +1,11 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2013.03.24-01
+  - ADD ST3 Compatibility. Tested with ST3 build 3021
+  - ADD folder libs/py33 for Sublime Text 3 compatibility. ST3 use Python 3.3.0
+  - ADD diff_match_patch.py in libs/py33 patched by Sergey Trupp.
+
 ## 2013.03.22-01
   - FIX Check syntax mode before trying to reformat
   - Upgrade pep8 to version 1.4.6a0
