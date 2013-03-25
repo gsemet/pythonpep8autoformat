@@ -1,6 +1,9 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2013.03.25-02
+  - FIX [Issue #7 Does not work with syntax "Python Django"](https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/10/does-not-work-with-syntax-python-django)
+
 ## 2013.03.24-01
   - ADD ST3 Compatibility. Tested with ST3 build 3021
   - ADD folder libs/py33 for Sublime Text 3 compatibility. ST3 use Python 3.3.0

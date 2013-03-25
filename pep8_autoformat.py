@@ -62,7 +62,7 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         syntax = self.view.settings().get('syntax')
-        if syntax.find('Python.tmLanguage') == -1:
+        if syntax.lower().find('python') == -1:
             return
         replace_region = self.view.line(
             sublime.Region(0, self.view.size()))
@@ -80,7 +80,7 @@ class Pep8AutoformatBackground(sublime_plugin.EventListener):
 
     def on_pre_save(self, view):
         syntax = view.settings().get('syntax')
-        if syntax.find('Python.tmLanguage') == -1:
+        if syntax.lower().find('python') == -1:
             return
 
         # do autoformat on file save if allowed in settings
