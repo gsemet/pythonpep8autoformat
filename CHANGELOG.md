@@ -2,9 +2,12 @@
 Python PEP8 Autoformat
 
 ## 2013.05.09-01
+  - Upgrade autopep8 to version 0.9
+  
+## 2013.05.09-01
   - FIX error parsing "ignore" and "select" settings.
   - Changes misinterpreted "aggressive" settings from boolean to counter.
-  - ADD new boolean settings "list-fixes".
+  - ADD new boolean setting "list-fixes".
 
 ## 2013.03.25-02
   - FIX [Issue #7 Does not work with syntax "Python Django"](https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/10/does-not-work-with-syntax-python-django)
