@@ -46,14 +46,20 @@ class PythonPEP8Autoformat(object):
         self.settings = sublime.load_settings(SETTINGS_FILE)
 
     def get_options(self):
-        options = autopep8.parse_args([''])[0]
-        options.max_line_length = self.settings.get(
-            'max-line-length', 79)
-        options.aggressive = self.settings.get('aggressive', False)
-        if self.settings.get('ignore', []):
-            options.ignore = ','.join(self.settings.get('ignore', []))
-        if self.settings.get('select', []):
-            options.select = ','.join(self.settings.get('select', []))
+        cmd_args = list()
+        cmd_args.extend(['--aggressive'] * self.settings.get('aggressive', 0))
+        if self.settings.get('list-fixes', False):
+            cmd_args.append('--list-fixes')
+        if self.settings.get('ignore', False):
+            cmd_args.append('--ignore={0}'.format(self.settings.get('ignore')))
+        if self.settings.get('select', False):
+            cmd_args.append('--select={0}'.format(self.settings.get('ignore')))
+        if self.settings.get('max-line-length', False):
+            cmd_args.append('--max-line-length={0}'.format(
+                self.settings.get('max-line-length')))
+        #-- We must give a filename to pass the parse_args() tests
+        cmd_args.append('filename')
+        options, _ = autopep8.parse_args(cmd_args)
 
         return options
 

@@ -1,18 +1,16 @@
 Two days ago, looking for a possible [Eclipse][] replacement, I gave a try to [Sublime Text 2][].
 One of my main usages of [PyDev][] (very good Eclipse plug-in for Python developer) is the code formatter.
 Under ST2 I installed [PythonTidy][] but unfortunately it did not work for me.
-So, for fun and learning, I decided to create a new ST2 plug-in: **Python PEP8 Autoformat**.
+So, for fun and learning, I decided to create a new ST2/ST3 plug-in: **Python PEP8 Autoformat**.
 It is based on [autopep8][] as code formatter and [pep8][] as code linter.
 
 # Python PEP8 Autoformat
 
-Python PEP8 Autoformat is a Sublime Text 2 plug-in to interactively reformat Python source code according
-to [PEP-8][] (Style Guide for Python Code). 
+Python PEP8 Autoformat is a Sublime Text 2/3 plug-in to interactively reformat Python source code according to [PEP-8][] (Style Guide for Python Code). 
 
 ## Installation
 
-To avoid dependencies, a version of autopep8 is shipped with this package. If you want to use version installed
-on your system, you have to set up the path to autopep8 (see below).
+To avoid dependencies, all necessary modules are included within the package.
 
 1. Using [Sublime Package Control][]
     + Use `cmd+shift+P` shortcut then `Package Control: Install Package`
@@ -38,17 +36,21 @@ You'll find settings in Preferences menu (Preferences -> Package Settings -> Pyt
         // autoformat code on save ?
         "autoformat_on_save": false,
 
-        // select errors / warnings(e.g. ["E4", "W"])
-        "select": [],
+        // enable possibly unsafe changes (E226, E24, W6)
+        // aggressive level, 0 to disable:
+        "aggressive": 0,
 
-        // do not fix these errors / warnings(e.g. ["E501", E4", "W"])
+        // list codes for fixes; used by --ignore and --select
+        "list-fixes": false,
+
+        // do not fix these errors / warnings (e.g. ["E501", E4", "W"])
         "ignore": [],
 
-        // Maximum line length
-        "max-line-length": 128,
+        // select errors / warnings (e.g. ["E4", "W"])
+        "select": [],
 
-        // enable possibly unsafe changes (E711, E712)
-        "aggressive": false
+        // Maximum line length
+        "max-line-length": 79
     }
 
 By editing User settings, your personal liking will be kept safe over plug-in upgrades.
