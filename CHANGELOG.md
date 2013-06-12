@@ -1,6 +1,10 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2013.06.12-01
+  - FIX bad interpretation of 'select' and 'ignore' settings.
+  - Upgrade autopep8 to version 0.9.2a0
+
 ## 2013.05.09-02
   - Upgrade autopep8 to version 0.9
   

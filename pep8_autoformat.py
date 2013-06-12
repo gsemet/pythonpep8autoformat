@@ -51,9 +51,11 @@ class PythonPEP8Autoformat(object):
         if self.settings.get('list-fixes', False):
             cmd_args.append('--list-fixes')
         if self.settings.get('ignore', False):
-            cmd_args.append('--ignore={0}'.format(self.settings.get('ignore')))
+            cmd_args.append('--ignore={0}'.format(','.join(
+                [o.strip() for o in self.settings.get('ignore') if o.strip()])))
         if self.settings.get('select', False):
-            cmd_args.append('--select={0}'.format(self.settings.get('ignore')))
+            cmd_args.append('--select={0}'.format(','.join(
+                [o.strip() for o in self.settings.get('select') if o.strip()])))
         if self.settings.get('max-line-length', False):
             cmd_args.append('--max-line-length={0}'.format(
                 self.settings.get('max-line-length')))
