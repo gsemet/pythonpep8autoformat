@@ -1,6 +1,9 @@
 # CHANGELOG
 Python PEP8 Autoformat
 
+## 2013.06-13-01
+  - Python PEP8 Autoformat must be unzipped to allow it to access files. This is not the default behavior under ST3. Right now (under ST3) the package must be installed manually.
+
 ## 2013.06.12-01
   - FIX bad interpretation of 'select' and 'ignore' settings.
   - Upgrade autopep8 to version 0.9.2a0

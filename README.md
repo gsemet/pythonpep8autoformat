@@ -12,21 +12,35 @@ Python PEP8 Autoformat is a Sublime Text 2/3 plug-in to interactively reformat P
 
 To avoid dependencies, all necessary modules are included within the package.
 
+### Sublime Text 3
+
+Since Sublime Text 3 no longer extracts the contents of .sublime-package files by default, and the fact that Python PEP8 Autoformat needs to read files from disk, the only viable install method right now is manual.
+
+1. Using mercurial (hg) repository on bitbucket:
+    + Open a terminal, move to Packages directory (refers to the folder that opens when you use the Preferences > Browse Packages… menu). Then type in terminal:
+    + `hg clone https://bitbucket.org/StephaneBunel/pythonpep8autoformat 'Python PEP8 Autoformat'`
+
+1. Manually:
+    + Download an [archive][TagArchive]
+      of Python PEP8 Autoformat.
+    + Open a terminal, move to Packages directory (refers to the folder that opens when you use the Preferences > Browse Packages… menu) and create a new directory named 'Python PEP8 Autoformat'
+    + Extract archive contents in this 'Python PEP8 Autoformat' directory.
+
+### Sublime Text 2
+
 1. Using [Sublime Package Control][]
     + Use `cmd+shift+P` shortcut then `Package Control: Install Package`
     + Look for `Python PEP8 Autoformat` and install it.
 
 1. Using mercurial (hg) repository on bitbucket:
-    + Open a terminal, cd to ST2/Packages directory (Preferences -> Browse packages). Then type in terminal:
+    + Open a terminal, move to Packages directory (refers to the folder that opens when you use the Preferences > Browse Packages… menu). Then type in terminal:
     + `hg clone https://bitbucket.org/StephaneBunel/pythonpep8autoformat 'Python PEP8 Autoformat'`
 
 1. Manually:
-    + Download an [archive](https://bitbucket.org/StephaneBunel/pythonpep8autoformat/downloads)
+    + Download an [archive][TagArchive]
       of Python PEP8 Autoformat
-    + Change directory to ST2/Packages directory (Preferences -> Browse packages) and create a new
-      directory named 'Python PEP8 Autoformat'
+    + Open a terminal, move to Packages directory (refers to the folder that opens when you use the Preferences > Browse Packages… menu) and create a new directory named 'Python PEP8 Autoformat'
     + Extract archive contents in this 'Python PEP8 Autoformat' directory.
-
 
 ## Settings
 
@@ -109,3 +123,4 @@ limitations under the License.
 [Sublime Package Control]: http://wbond.net/sublime_packages/package_control
 [SublimeLinter]:           https://github.com/SublimeLinter/SublimeLinter
 [MarkdownPreview]:         https://github.com/revolunet/sublimetext-markdown-preview
+[TagArchive]:              https://bitbucket.org/StephaneBunel/pythonpep8autoformat/downloads/#tag-downloads

@@ -8,3 +8,5 @@ Patches, Bug Reports and Suggestions:
 - Zhenyu Li `https://bitbucket.org/fjctlzy`
 - Timon Wong `https://github.com/timonwong`
 - Sergey Trupp `https://bitbucket.org/trooper`
+- Christian Brassat `https://bitbucket.org/crshd`
+
