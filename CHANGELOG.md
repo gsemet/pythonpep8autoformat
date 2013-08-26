@@ -2,6 +2,9 @@
 
 ## Python PEP8 Autoformat
 
+### 2013.08.26-01
+  - Sublime Text 3 no longer extracts the contents of .sublime-package files by default, and the fact that Python PEP8 Autoformat needs to read files from disk, the only viable install method was manual. To fix this, .no-sublime-packages file was added as suggested by [Annonymous][issue15]. Thanks!
+
 ### 2013.08.25-01
   - Upgrade autopep8 to version 0.9.4a0. This raised an import issue which broke the plug-in with ST2 (import io). autopep8 was modified to import StringIO as io when import io fail.
 
@@ -150,3 +153,4 @@ Now uses a fixed autopep8 from [hhatto/fix-github-issue40][fix-github-issue40] b
 [issue7]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/7/view-jumping-in-sublime
 [issue8]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/8/change-on_post_save-to-on_pre_save
 [issue9]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/9/multiline-selection-on-saving-formatting
+[issue15]: https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/15/add-no-sublime-package
