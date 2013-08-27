@@ -2,6 +2,9 @@
 
 ## Python PEP8 Autoformat
 
+### 2013.08.27-01
+  - FIX typo in .no-sublime-package(s) filename.
+
 ### 2013.08.26-01
   - Sublime Text 3 no longer extracts the contents of .sublime-package files by default, and the fact that Python PEP8 Autoformat needs to read files from disk, the only viable install method was manual. To fix this, .no-sublime-packages file was added as suggested by [Annonymous][issue15]. Thanks!
 
