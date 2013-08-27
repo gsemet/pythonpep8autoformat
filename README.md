@@ -1,24 +1,28 @@
-Two days ago, looking for a possible [Eclipse][] replacement, I gave a try to [Sublime Text 2][].
-One of my main usages of [PyDev][] (very good Eclipse plug-in for Python developer) is the code formatter.
-Under ST2 I installed [PythonTidy][] but unfortunately it did not work for me.
-So, for fun and learning, I decided to create a new ST2/ST3 plug-in: **Python PEP8 Autoformat**.
-It is based on [autopep8][] as code formatter and [pep8][] as code linter.
-
 # Python PEP8 Autoformat
 
-Python PEP8 Autoformat is a Sublime Text 2/3 plug-in to interactively reformat Python source code according to [PEP-8][] (Style Guide for Python Code). 
+Python PEP8 Autoformat is a Sublime Text plugin to interactively reformat Python source code according to [PEP-8][] (Style Guide for Python Code). Both Sublime Text versions 2 and 3 are supported.
+
+## History
+
+Some time ago, looking for a possible [Eclipse][] replacement, I gave a try to [Sublime Text 2][]. One of my main usages of [PyDev][] (very good Eclipse plugin for Python developer) is the code formatter.
+
+Under Sublime Text 2 I installed [PythonTidy][] but unfortunately it did not work for me.
+So, for fun and learning, I decided to create **Python PEP8 Autoformat**, based on [autopep8][] as code formatter and [pep8][] as code linter.
 
 ## Installation
 
 To avoid dependencies, all necessary modules are included within the package.
 
+
 1. Using [Sublime Package Control][]
     + Use `cmd+shift+P` shortcut then `Package Control: Install Package`
     + Look for `Python PEP8 Autoformat` and install it.
 
+
 1. Using mercurial (hg) repository on bitbucket:
     + Open a terminal, move to Packages directory (refers to the folder that opens when you use the Preferences > Browse Packages… menu). Then type in terminal:
     + `hg clone https://bitbucket.org/StephaneBunel/pythonpep8autoformat 'Python PEP8 Autoformat'`
+
 
 1. Manually:
     + Download an [archive][TagArchive]
@@ -51,7 +55,7 @@ You'll find settings in Preferences menu (Preferences -> Package Settings -> Pyt
         "max-line-length": 79
     }
 
-By editing User settings, your personal liking will be kept safe over plug-in upgrades.
+By editing User settings, your personal liking will be kept safe over plugin upgrades.
 
 ## Usage
 
