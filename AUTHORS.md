@@ -9,4 +9,4 @@ Patches, Bug Reports and Suggestions:
 - Timon Wong `https://github.com/timonwong`
 - Sergey Trupp `https://bitbucket.org/trooper`
 - Christian Brassat `https://bitbucket.org/crshd`
-
+- Christopher Welborn `https://bitbucket.org/cjwelborn`

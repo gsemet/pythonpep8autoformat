@@ -1,4 +1,5 @@
 syntax: glob
+*.py.old
 *.pyc
 *.sublime-project
 *.sublime-workspace
