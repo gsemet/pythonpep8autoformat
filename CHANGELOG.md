@@ -2,7 +2,10 @@
 
 ## Python PEP8 Autoformat
 
-### 2014.09-30-01
+### 2014.10.06-01
+  - Fix autopep8 API changes and close [Issue #19](https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/19/not-running-attribute-error)
+
+### 2014.09.30-01
   - Upgrade autopep8 to version 1.0.5a0 to fix [Issue #7 Crashes Sublime Text when extra parenthesis is added](https://bitbucket.org/StephaneBunel/pythonpep8autoformat/issue/18/crashes-sublime-text-when-extra). Thx to Christopher Welborn.
   - Upgrade pep8 to version 1.6.0a0.
 

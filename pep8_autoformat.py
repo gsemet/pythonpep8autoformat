@@ -61,7 +61,7 @@ class PythonPEP8Autoformat(object):
                 self.settings.get('max-line-length')))
         #-- We must give a filename to pass the parse_args() tests
         cmd_args.append('filename')
-        options, _ = autopep8.parse_args(cmd_args)
+        options = autopep8.parse_args(cmd_args)
 
         return options
 
@@ -75,9 +75,8 @@ class Pep8AutoformatCommand(sublime_plugin.TextCommand):
         replace_region = self.view.line(
             sublime.Region(0, self.view.size()))
         source = self.view.substr(replace_region)
-        fixed = autopep8.fix_string(source, options=PPA.get_options())
-        is_dirty, err = MergeUtils.merge_code(
-            self.view, edit, source, fixed)
+        fixed = autopep8.fix_code(source, options=PPA.get_options())
+        is_dirty, err = MergeUtils.merge_code(self.view, edit, source, fixed)
         if err:
             sublime.error_message(
                 "%s: Merge failure: '%s'" % (PLUGIN_NAME, err))
