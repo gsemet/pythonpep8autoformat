@@ -59,6 +59,9 @@ class PythonPEP8Autoformat(object):
         if self.settings.get('max-line-length', False):
             cmd_args.append('--max-line-length={0}'.format(
                 self.settings.get('max-line-length')))
+        if self.settings.get('indent-size', False):
+            cmd_args.append('--indent-size={0}'.format(
+                self.settings.get('indent-size')))
         #-- We must give a filename to pass the parse_args() tests
         cmd_args.append('filename')
         options = autopep8.parse_args(cmd_args)
