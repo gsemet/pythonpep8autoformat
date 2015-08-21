@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
 import sublime
 import sublime_plugin
+import sys
 
 PPA_PATH = list()
 PYMAMI = '{0}{1}'.format(*sys.version_info[:2])
