@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import os
 import sublime
 import sublime_plugin
@@ -46,6 +48,53 @@ except:
     sublime.error_message(
         '{0}: import error: {1}'.format(PLUGIN_NAME, sys.exc_info()[1]))
     raise
+
+override_enable_python_autopep8 = None
+disable_python_autopep8_for_files = set()
+enable_python_autopep8_for_files = set()
+
+def get_current_filename():
+    view = sublime.Window.active_view(sublime.active_window())
+    return os.path.abspath(view.file_name())
+
+
+class EnablePythonAutopep8Command(sublime_plugin.TextCommand):
+
+    def run(self, edit):
+        global override_enable_python_autopep8
+        printDebug("EnablePythonAutopep8Command")
+        override_enable_python_autopep8 = True
+
+
+class DisablePythonAutopep8Command(sublime_plugin.TextCommand):
+
+    def run(self, edit):
+        global override_enable_python_autopep8
+        printDebug("DisablePythonAutopep8Command")
+        override_enable_python_autopep8 = False
+
+
+class DisablePythonAutopep8ForFileCommand(sublime_plugin.TextCommand):
+
+    def run(self, edit):
+        global disable_python_autopep8_for_files
+        printDebug("DisablePythonAutopep8ForFileCommand")
+        f = get_current_filename()
+        disable_python_autopep8_for_files.add(f)
+        if f in enable_python_autopep8_for_files:
+            enable_python_autopep8_for_files.remove(f)
+
+
+class EnablePythonAutopep8ForFileCommand(sublime_plugin.TextCommand):
+
+    def run(self, edit):
+        global enable_python_autopep8_for_files
+        global disable_python_fiximports_for_file
+        printDebug("enable_python_autopep8_for_files")
+        f = get_current_filename()
+        enable_python_autopep8_for_files.add(f)
+        if f in disable_python_autopep8_for_files:
+            disable_python_autopep8_for_files.remove(f)
 
 
 class PythonPEP8Autoformat(object):
@@ -102,8 +151,25 @@ class Pep8AutoformatBackground(sublime_plugin.EventListener):
             return
 
         # do autoformat on file save if allowed in settings
-        if PPA.settings.get('autoformat_on_save', False):
+        if not PPA.settings.get('autoformat_on_save', False):
+            return
+
+        f = get_current_filename()
+
+        if f in enable_python_autopep8_for_files:
+            printDebug("Current file in list of forced AutoPep8. Do AutoPep8")
             view.run_command('pep8_autoformat')
+            return
+
+        if f in disable_python_autopep8_for_files:
+            printDebug("Current file in list of disabled AutoPep8. Don't AutoPep8")
+            return
+
+        if override_enable_python_autopep8 is False:
+            printDebug("Temporary override of AutoPep8 import set to Disabled. Do not AutoPep8")
+            return
+
+        view.run_command('pep8_autoformat')
 
 
 # In ST3 this will get called automatically once

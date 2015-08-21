@@ -1,3 +1,22 @@
 [
-    { "caption": "User: Python PEP8 Autoformat", "command": "pep8_autoformat" }
+	{
+		"caption": "Python PEP8 Autoformat",
+		"command": "pep8_autoformat"
+	},
+	{
+		"caption": "Enable Python AutoPep8 (until restart)",
+		"command": "enable_python_autopep8"
+	},
+	{
+		"caption": "Disable Python AutoPep8 (until restart)",
+		"command": "disable_python_autopep8"
+	},
+	{
+		"caption": "Disable Python AutoPep8 for this file (until restart)",
+		"command": "disable_python_autopep8_for_file"
+	},
+	{
+		"caption": "Enable Python AutoPep8 for this file (until restart)",
+		"command": "enable_python_autopep8_for_file"
+	},
 ]
